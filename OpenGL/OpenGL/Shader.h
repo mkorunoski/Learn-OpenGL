@@ -10,13 +10,12 @@
 
 class Shader
 {
-public:
+private:
 	GLuint vertex;
 	GLuint geometry;
 	GLuint fragment;
-
 	GLuint program;
-private:
+
 	GLuint CompileShader(const std::string& path, GLuint shaderType, const std::string& name)
 	{
 		std::string code;
@@ -84,10 +83,11 @@ private:
 public:
 	Shader() { }
 
-	Shader(const GLchar* vertexPath, const GLchar* geometryPath, const GLchar* fragmentPath)
+	const GLuint& GetProgram() { return program; }
+
+	Shader(const GLchar* vertexPath, const GLchar* fragmentPath)
 	{
 		vertex	 = CompileShader(vertexPath, GL_VERTEX_SHADER, "VERTEX");
-//		geometry = CompileShader(geometryPath, GL_GEOMETRY_SHADER, "GEOMETRY");
 		fragment = CompileShader(fragmentPath, GL_FRAGMENT_SHADER, "FRAGMENT");
 
 		LinkProgram(new GLuint[] {vertex, fragment}, 2);

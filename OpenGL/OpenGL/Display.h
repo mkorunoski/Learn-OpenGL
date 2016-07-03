@@ -6,10 +6,11 @@
 
 class Display
 {
-public:
+private:
 	SDL_Window* window;
 	SDL_GLContext glContext;
 
+public:
 	Display(GLuint width, GLuint height)
 	{
 		SDL_Init(SDL_INIT_EVERYTHING);

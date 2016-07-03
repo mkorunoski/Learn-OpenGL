@@ -15,6 +15,7 @@ private:
 	glm::mat4 modelMatrix;
 
 	void UpdateModelMatrix() { modelMatrix = translate * rotate * scale; }
+
 public:
 	Transformation()
 	{

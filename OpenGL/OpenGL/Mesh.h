@@ -45,26 +45,40 @@ typedef struct Vertex
 
 class Mesh
 {
-public:
+private:
 	GLuint VAO;
 	GLuint VBO, EBO;
 	GLuint numIndices;
 	GLuint numVertices;
-
-private:
-
+	
 	void AttributePointers()
 	{
-		glVertexAttribPointer(ATTRIBUTE_LOCATION::POSITION, POSITION_LENGTH, GL_FLOAT, GL_FALSE, VERTEX_LENGTH * sizeof(GLfloat), (const GLvoid*)offsetof(Vertex, position));
+		glVertexAttribPointer(ATTRIBUTE_LOCATION::POSITION,
+			POSITION_LENGTH,
+			GL_FLOAT, GL_FALSE,
+			VERTEX_LENGTH * sizeof(GLfloat),
+			(const GLvoid*)offsetof(Vertex, position));
 		glEnableVertexAttribArray(ATTRIBUTE_LOCATION::POSITION);
 
-		glVertexAttribPointer(ATTRIBUTE_LOCATION::NORMAL, NORMAL_LENGTH, GL_FLOAT, GL_FALSE, VERTEX_LENGTH * sizeof(GLfloat), (const GLvoid*)offsetof(Vertex, normal));
+		glVertexAttribPointer(ATTRIBUTE_LOCATION::NORMAL,
+			NORMAL_LENGTH,
+			GL_FLOAT, GL_FALSE,
+			VERTEX_LENGTH * sizeof(GLfloat),
+			(const GLvoid*)offsetof(Vertex, normal));
 		glEnableVertexAttribArray(ATTRIBUTE_LOCATION::NORMAL);
 
-		glVertexAttribPointer(ATTRIBUTE_LOCATION::COLOR, COLOR_LENGTH, GL_FLOAT, GL_FALSE, VERTEX_LENGTH * sizeof(GLfloat), (const GLvoid*)offsetof(Vertex, color));
+		glVertexAttribPointer(ATTRIBUTE_LOCATION::COLOR,
+			COLOR_LENGTH,
+			GL_FLOAT, GL_FALSE,
+			VERTEX_LENGTH * sizeof(GLfloat),
+			(const GLvoid*)offsetof(Vertex, color));
 		glEnableVertexAttribArray(ATTRIBUTE_LOCATION::COLOR);
 
-		glVertexAttribPointer(ATTRIBUTE_LOCATION::TEX_COORDS, TEX_COORDS_LENGTH, GL_FLOAT, GL_FALSE, VERTEX_LENGTH * sizeof(GLfloat), (const GLvoid*)offsetof(Vertex, texCoords));
+		glVertexAttribPointer(ATTRIBUTE_LOCATION::TEX_COORDS,
+			TEX_COORDS_LENGTH,
+			GL_FLOAT, GL_FALSE,
+			VERTEX_LENGTH * sizeof(GLfloat),
+			(const GLvoid*)offsetof(Vertex, texCoords));
 		glEnableVertexAttribArray(ATTRIBUTE_LOCATION::TEX_COORDS);
 	}
 
