@@ -7,38 +7,33 @@
 
 const GLuint POSITION_LENGTH	= 3;
 const GLuint NORMAL_LENGTH		= 3;
-const GLuint COLOR_LENGTH		= 3;
 const GLuint TEX_COORDS_LENGTH	= 2;
-const GLuint VERTEX_LENGTH		= POSITION_LENGTH + NORMAL_LENGTH + COLOR_LENGTH + TEX_COORDS_LENGTH;
+const GLuint VERTEX_LENGTH		= POSITION_LENGTH + NORMAL_LENGTH + TEX_COORDS_LENGTH;
 
 enum ATTRIBUTE_LOCATION
 {
 	POSITION = 0,
-	NORMAL,
-	COLOR,
+	NORMAL,	
 	TEX_COORDS
 };
 
 typedef struct Vertex
 {	
 	glm::vec3 position;
-	glm::vec3 normal;
-	glm::vec3 color;
+	glm::vec3 normal;	
 	glm::vec2 texCoords;
 
 	Vertex()
 	{
 		this->position	= glm::vec3(0.0f);
 		this->normal	= glm::vec3(0.0f);
-		this->color		= glm::vec3(1.0f);
 		this->texCoords = glm::vec2(0.0f);
 	}
 
-	Vertex(const glm::vec3& position, const glm::vec3& normal, const glm::vec3& color, const glm::vec2& texCoords)
+	Vertex(const glm::vec3& position, const glm::vec3& normal, const glm::vec2& texCoords)
 	{
 		this->position	= position;
 		this->normal	= normal;
-		this->color		= color;
 		this->texCoords = texCoords;
 	}
 } Vertex;
@@ -67,13 +62,6 @@ private:
 			(const GLvoid*)offsetof(Vertex, normal));
 		glEnableVertexAttribArray(ATTRIBUTE_LOCATION::NORMAL);
 
-		glVertexAttribPointer(ATTRIBUTE_LOCATION::COLOR,
-			COLOR_LENGTH,
-			GL_FLOAT, GL_FALSE,
-			VERTEX_LENGTH * sizeof(GLfloat),
-			(const GLvoid*)offsetof(Vertex, color));
-		glEnableVertexAttribArray(ATTRIBUTE_LOCATION::COLOR);
-
 		glVertexAttribPointer(ATTRIBUTE_LOCATION::TEX_COORDS,
 			TEX_COORDS_LENGTH,
 			GL_FLOAT, GL_FALSE,
@@ -85,9 +73,19 @@ private:
 public:
 	Mesh() { }
 
-	Mesh(const std::vector<Vertex>& vertices, GLuint numVertices)
+	Mesh& operator=(const Mesh& mesh)
 	{
-		this->numVertices = numVertices;
+		VAO = mesh.VAO;
+		VBO = mesh.VBO;
+		EBO = mesh.EBO;
+		numIndices  = mesh.numIndices;
+		numVertices = mesh.numVertices;
+		return *this;
+	}
+
+	Mesh(const std::vector<Vertex>& vertices)
+	{
+		numVertices = vertices.size();
 
 		glGenVertexArrays(1, &VAO);
 		glBindVertexArray(VAO);
@@ -101,10 +99,10 @@ public:
 		glBindVertexArray(0);
 	}
 
-	Mesh(const std::vector<Vertex>& vertices, GLuint numVertices, const std::vector<GLuint>& indices, GLuint numIndices)
+	Mesh(const std::vector<Vertex>& vertices, const std::vector<GLuint>& indices)
 	{
-		this->numIndices = numIndices;
-		this->numVertices = numVertices;
+		numVertices = vertices.size();
+		numIndices = indices.size();		
 
 		glGenVertexArrays(1, &VAO);
 		glBindVertexArray(VAO);
@@ -138,9 +136,9 @@ public:
 
 	~Mesh()
 	{
-		glDeleteBuffers(1, &EBO);
-		glDeleteBuffers(1, &VBO);
-		glDeleteVertexArrays(1, &VAO);		
+		// glDeleteBuffers(1, &EBO);
+		// glDeleteBuffers(1, &VBO);
+		// glDeleteVertexArrays(1, &VAO);		
 	}
 };
 

@@ -8,13 +8,24 @@
 class Material
 {	
 private:
-	glm::vec4 ambient;
-	glm::vec4 diffuse;
-	glm::vec4 specular;
+	glm::vec3 ambient;
+	glm::vec3 diffuse;
+	glm::vec3 specular;
 	GLfloat shininess;
 
 public:
-	Material(const glm::vec4& ambient, const glm::vec4& diffuse, const glm::vec4& specular, GLfloat shininess)
+	Material() { }
+
+	Material& operator=(const Material& material)
+	{
+		ambient   = material.ambient;
+		diffuse   = material.diffuse;
+		specular  = material.specular;
+		shininess = material.shininess;
+		return *this;
+	}
+
+	Material(const glm::vec3& ambient, const glm::vec3& diffuse, const glm::vec3& specular, GLfloat shininess)
 	{
 		this->ambient = ambient;
 		this->diffuse = diffuse;
@@ -24,9 +35,9 @@ public:
 
 	void Use(const GLuint& program)
 	{
-		glUniform4fv(glGetUniformLocation(program, "material.ambient"), 1, glm::value_ptr(ambient));
-		glUniform4fv(glGetUniformLocation(program, "material.diffuse"), 1, glm::value_ptr(diffuse));
-		glUniform4fv(glGetUniformLocation(program, "material.specular"), 1, glm::value_ptr(specular));
+		glUniform3fv(glGetUniformLocation(program, "material.ambient"), 1, glm::value_ptr(ambient));
+		glUniform3fv(glGetUniformLocation(program, "material.diffuse"), 1, glm::value_ptr(diffuse));
+		glUniform3fv(glGetUniformLocation(program, "material.specular"), 1, glm::value_ptr(specular));
 		glUniform1f(glGetUniformLocation(program, "material.shininess"), shininess);
 	}
 

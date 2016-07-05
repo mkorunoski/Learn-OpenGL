@@ -32,7 +32,7 @@ int main(int argc, char ** argv)
 	SDL_Event e;		
 	while (true)
 	{
-		display.Clear(0.0f, 0.0f, 0.0f, 1.0f);
+		display.Clear(0.2f, 0.2f, 0.2f, 1.0f);
 
 		timer.Tick();
 
@@ -50,16 +50,7 @@ int main(int argc, char ** argv)
 				}
 				switch (e.key.keysym.sym)
 				{
-				case SDLK_ESCAPE: return 0;
-
-				case SDLK_z: glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); break;
-				case SDLK_x: glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); break;
-
-				case SDLK_c: renderer.ChangeOutlineCube(); break;
-
-				case SDLK_1: renderer.whichLight = 1; break;
-				case SDLK_2: renderer.whichLight = 2; break;
-				case SDLK_3: renderer.whichLight = 3; break;
+				case SDLK_ESCAPE: return 0;				
 				}
 			}
 			if (e.type == SDL_KEYUP)
@@ -79,9 +70,16 @@ int main(int argc, char ** argv)
 			}			
 		}
 		eventHandler.Process(&camera, (GLfloat)timer.DeltaTime(), (GLfloat)mouseXpos, (GLfloat)mouseYpos);
+
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		
 		renderer.IncrementAngle((GLfloat)timer.DeltaTime());
+
+		//display.RenderSceneToFrameBuffer();
 		renderer.RenderScene();
+		
+		//display.RenderOnscreen();
+		//display.DisplayFrameBufferContent();
 
 		display.SwapBuffers();
 	}

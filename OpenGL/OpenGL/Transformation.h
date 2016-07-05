@@ -4,6 +4,7 @@
 #include <GL/glew.h>
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
+#include <glm/gtc/matrix_inverse.hpp>
 
 class Transformation
 {
@@ -13,8 +14,13 @@ private:
 	glm::mat4 translate;
 
 	glm::mat4 modelMatrix;
+	glm::mat4 inverseTranspose;
 
-	void UpdateModelMatrix() { modelMatrix = translate * rotate * scale; }
+	void UpdateModelMatrix()
+	{
+		modelMatrix = translate * rotate * scale;
+		glm::inverseTranspose(modelMatrix);
+	}
 
 public:
 	Transformation()
@@ -23,6 +29,16 @@ public:
 		rotate	  = glm::rotate(0.0f, glm::vec3(0.0f, 1.0f, 0.0f));
 		translate = glm::translate(glm::vec3(0.0f, 0.0f, 0.0f));
 		UpdateModelMatrix();
+	}
+
+	Transformation& operator=(const Transformation& transformation)
+	{
+		scale		= transformation.scale;
+		rotate		= transformation.rotate;
+		translate	= transformation.translate;
+
+		modelMatrix = transformation.modelMatrix;
+		return *this;
 	}
 
 	void Scale(const glm::vec3& v)
@@ -44,7 +60,7 @@ public:
 	}
 
 	glm::mat4& GetModel() { return modelMatrix; }
-	glm::mat4 GetInverseTranspose() { return glm::transpose(glm::inverse(modelMatrix)); }
+	glm::mat4& GetInverseTranspose() { return inverseTranspose; }
 
 	~Transformation() { }
 };

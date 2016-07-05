@@ -1,26 +1,24 @@
 #version 420 core
+#extension GL_ARB_explicit_uniform_location : enable
 
+// Input attributes base: 0
 layout (location = 0) in vec3 position;
 layout (location = 1) in vec3 normal;
-layout (location = 2) in vec3 color;
-layout (location = 3) in vec2 texCoords;
+layout (location = 2) in vec2 texCoords;
 
-layout (std140, binding = 0) uniform TransformationBlock
+layout(std140) uniform ViewProjection
 {
-	mat4 model;
 	mat4 view;
 	mat4 projection;
-	mat4 inverseTranspose;
 };
 
-out vec3 eyeDirection;
+// Transformation matrices base: 10
+layout(location = 10) uniform mat4 model;
+
+out vec3 f_texCoords;
 
 void main()
 {
-	mat4 inverseProjection = inverse(projection);
-    mat3 inverseModelview = transpose(mat3(view * model));
-    vec3 unprojected = mat3(inverseProjection) * position;
-    eyeDirection = inverseModelview * unprojected;
-
-    gl_Position = vec4(position, 1.0f);        
+	f_texCoords	= position;
+    gl_Position = projection * view * model * vec4(position, 1.0f);        
 }

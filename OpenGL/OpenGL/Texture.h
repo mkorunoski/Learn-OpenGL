@@ -13,6 +13,12 @@ private:
 public:
 	Texture() { }
 
+	Texture& operator=(const Texture& texture)
+	{
+		this->texture = texture.texture;
+		return *this;
+	}
+
 	Texture(const std::string& textureLocation)
 	{
 		int textureWidth, textureHeight;
@@ -43,7 +49,7 @@ public:
 
 	~Texture()
 	{
-		glDeleteTextures(1, &texture);
+		// glDeleteTextures(1, &texture);
 	}
 };
 

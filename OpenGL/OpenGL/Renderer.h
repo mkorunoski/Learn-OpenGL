@@ -16,345 +16,247 @@
 #include "Material.h"
 #include "Light.h"
 
-// Uniform buffer offsets
-const GLintptr MODEL_OFFSET		 = 0;
-const GLintptr VIEW_OFFSET		 = 1 * sizeof(glm::mat4);
-const GLintptr PROJECTION_OFFSET = 2 * sizeof(glm::mat4);
-const GLintptr INV_TRANS_OFFSET  = 3 * sizeof(glm::mat4);
-
-// Constats
-const GLuint BUFFER_BASE = 0;
+enum UniformLoc
+{
+	MODEL = 10,	
+	INVERSE_TRANSPOSE,
+	EYE_POSITION = 20,
+	SKYBOX_TEX = 30,
+};
 
 class Renderer
 {
 private:
-	Camera* camera;
+	GLuint wndWidth;
+	GLuint wndHeight;
+	Camera* camera;	
 
 	// Shaders
-	Shader* shader;
-	Shader* outliner;
-	Shader* skybox;
-
+	static const GLuint NUM_SHADERS = 3;
+	Shader defaultShader;
+	Shader skybox;
+	Shader reflRefr;
+	
 	// Lights
-	DirectionalLight* directionalLight;
-	PointLight* pointLight1;
-	PointLight* pointLight2;
-	PointLight* pointLight3;
-	SpotLight* spotLight;
-
+	static const GLuint NUM_POINT_LIGHTS = 3;
+	DirectionalLight directionalLight;	
+	PointLight pointLights[NUM_POINT_LIGHTS];
+	SpotLight spotLight;
+	
 	// Meshes
-	Mesh* floor;
-	Transformation* floorTransformation;
-	Material* floorMaterial;
-	Texture* planeTexDiff;
-	Texture* planeTexNorm;
-	Texture* planeTexSpec;
-	Mesh* crate;
-	Transformation* crateTransformation;
-	Material* crateMaterial;
-	Texture* crateTexDiff;
-	Texture* crateTexSpec;
+	Mesh cube;
+	Mesh plane;
+	Mesh loadedMesh;
 
-	Transformation* skyboxTransformation;
-	CubemapTexture* skyboxTex;
+	Material cubeMaterial;	
+	Material planeMaterial;
+	Material loadedMeshMaterial;
 
-	// Uniform buffers and uniform locations
+	Transformation cubeTransformation;
+	Transformation planeTransformation;	
+	Transformation loadedMeshTransformation;
+	Transformation skyboxTransformation;
+
+	Texture checkered;
+	Texture marble;
+	Texture waterNormalMap;
+	CubemapTexture skyboxTex;
+
 	GLuint UBO;
-	GLuint uEyePosition;
-	GLuint uWhichLight;
-	GLuint uNormalFromMap;
-	GLuint uReflection;
-
+	
 public:
 	// For animation	
-	GLfloat angle = 0.0f;
-	int whichLight = 1;
-	bool outlineCube = false;
+	GLfloat angle = 0.0f;	
 
-public:
-	void IncrementAngle(GLfloat deltaTime) { angle += deltaTime; }
-	void ChangeOutlineCube() { outlineCube = outlineCube ? false : true; }
+private:
+	void CompileShaders()
+	{
+		defaultShader = Shader("./res/shaders/shader.vs", "./res/shaders/shader.fs");
+		skybox		  = Shader("./res/shaders/skybox.vs", "./res/shaders/skybox.fs");
+		reflRefr	  = Shader("./res/shaders/reflective_refractive.vs", "./res/shaders/reflective_refractive.fs");
+	}
 
-	Renderer(Camera* camera, GLfloat wndWidth, GLfloat wndHeight)
-	{		
-		this->camera = camera;
-
-		shader   = new Shader("./res/shaders/shader.vs", "./res/shaders/shader.fs");
-		outliner = new Shader("./res/shaders/outliner.vs", "./res/shaders/outliner.fs");
-		skybox	 = new Shader("./res/shaders/skybox.vs", "./res/shaders/skybox.fs");
-
-		directionalLight = new DirectionalLight(
-			shader->GetProgram(),
-			glm::vec4(0.4f, 0.4f, 0.4f, 1.0f),
-			glm::vec4(0.8f, 0.8f, 0.8f, 1.0f),
-			glm::vec4(1.0f),
-			glm::vec4(0.0f, 10.0f, 10.0f, 1.0f));
-
-		pointLight1 = new PointLight(
-			shader->GetProgram(), 0,
-			glm::vec4(0.4f, 0.4f, 0.4f, 1.0f),
-			glm::vec4(0.2f, 1.0f, 1.0f, 1.0f),
-			glm::vec4(1.0f),
-			glm::vec4(10.0f, 1.0f, 0.0f, 1.0f),
+	void SetupLights()
+	{
+		directionalLight = DirectionalLight(
+			glm::vec3(0.1f), glm::vec3(0.5f), glm::vec3(0.5f),
+			glm::vec3(-10.0f, 50.0f, -10.0f));
+		
+		pointLights[0] = PointLight(
+			glm::vec3(0.1f), glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.01f),
+			glm::vec3(10.0f, 1.0f, 0.0f),
 			1.0f, 0.07f, 0.017f);
-		pointLight2 = new PointLight(
-			shader->GetProgram(), 1,
-			glm::vec4(0.4f, 0.4f, 0.4f, 1.0f),
-			glm::vec4(1.0f, 0.2f, 1.0f, 1.0f),
-			glm::vec4(1.0f),
-			glm::vec4(-10.0f, 1.0f, 0.0f, 1.0f),
+		pointLights[1] = PointLight(
+			glm::vec3(0.1f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.01f),
+			glm::vec3(-10.0f, 1.0f, 0.0f),
 			1.0f, 0.07f, 0.017f);
-		pointLight3 = new PointLight(
-			shader->GetProgram(), 2,
-			glm::vec4(0.4f, 0.4f, 0.4f, 1.0f),
-			glm::vec4(1.0f, 1.0f, 0.2f, 1.0f),
-			glm::vec4(1.0f),
-			glm::vec4(0.0f, 1.0f, -10.0f, 1.0f),
+		pointLights[2] = PointLight(
+			glm::vec3(0.1f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.01f),
+			glm::vec3(0.0f, 1.0f, 10.0f),
 			1.0f, 0.07f, 0.017f);
 
-		spotLight = new SpotLight(
-			shader->GetProgram(),
-			glm::vec4(0.2f, 0.2f, 0.2f, 1.0f),
-			glm::vec4(1.0f),
-			glm::vec4(1.0f),
-			glm::vec4(0.0f, 5.0f, 20.0f, 1.0f),
-			glm::vec4(0.0f, 0.0f, -1.0f, 0.0f),
+		spotLight = SpotLight(
+			glm::vec3(0.1f), glm::vec3(1.0f), glm::vec3(1.0f),
+			glm::vec3(0.0f, 5.0f, 20.0f),
+			glm::vec3(0.0f, 0.0f, -1.0f),
 			17.5f, 12.5f);
+	}
 
+	void AcivateLights(Shader& shader)
+	{
+		directionalLight.SetUniforms(shader.GetProgram());
+		for (GLuint i = 0; i < NUM_POINT_LIGHTS; ++i)
+			pointLights[i].SetUniforms(shader.GetProgram(), i);
+		spotLight.SetUniforms(shader.GetProgram());
+		shader.Use();
+			directionalLight.Use();
+			for (int i = 0; i < NUM_POINT_LIGHTS; ++i)
+				pointLights[i].Use();
+			spotLight.SetPosition(camera->GetEyePos());
+			spotLight.SetDirection(camera->GetFront());
+			spotLight.Use();
+		shader.Unuse();
+	}
+
+	void LoadMeshes()
+	{
 		std::vector<Vertex> vertices;
 		std::vector<GLuint> indices;
 
-		Geometry::GeneratePlane(50, 50, 5, 5, vertices, indices);
-		floor = new Mesh(vertices, vertices.size(), indices, indices.size());
-		floorTransformation = new Transformation();
-		floorMaterial = new Material(
-			glm::vec4(1.0f),
-			glm::vec4(1.0f),
-			glm::vec4(1.0f),
-			64);
-		planeTexDiff = new Texture("./res/textures/floor/diffuse.jpg");
-		planeTexNorm = new Texture("./res/textures/floor/normal.jpg");
-		planeTexSpec = new Texture("./res/textures/floor/specular.jpg");
-
 		Geometry::GenerateCube(vertices);
-		crate = new Mesh(vertices, vertices.size());
-		crateTransformation = new Transformation();						
-		crateMaterial = new Material(
-			glm::vec4(1.0f),
-			glm::vec4(1.0f),
-			glm::vec4(1.0f),
-			8);
-		crateTexDiff = new Texture("./res/textures/crate/diffuse.jpg");
-		crateTexSpec = new Texture("./res/textures/crate/specular.jpg");
+		cube		= Mesh(vertices);
+		Geometry::GeneratePlane(50, 50, 10, 10, vertices, indices);
+		plane		= Mesh(vertices, indices);
+		Geometry::GenerateFromFile("./res/objects/sphere.obj", vertices, indices);
+		loadedMesh	= Mesh(vertices, indices);
 
-		// skyboxTransformation = new Transformation();
-		// skyboxTex = new CubemapTexture("./res/textures/cubemaps/", "jpg");
+		cubeTransformation		 = Transformation();
+		planeTransformation		 = Transformation();
+		loadedMeshTransformation = Transformation();		
 		
-		glm::mat4 projection = glm::perspective(70.0f, wndWidth / wndHeight, 0.1f, 1000.0f);
-		
+		cubeMaterial		 = Material(glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(1.0f), 64);
+		planeMaterial		 = Material(glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(1.0f), 128);
+		loadedMeshMaterial	 = Material(glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(1.0f), 2);
+		skyboxTransformation = Transformation();
+
+		checkered = Texture("./res/textures/checkered.jpg");
+		marble	  = Texture("./res/textures/marble.jpg");
+		waterNormalMap = Texture("./res/textures/water_nm.jpg");
+		skyboxTex = CubemapTexture("./res/textures/cubemaps/", "jpg");
+	}
+
+	void SetupUniformBufferObjects()
+	{
+		const GLuint BINDING_POINT0 = 0;
+		GLuint UBIndices[NUM_SHADERS];
+		const GLchar* UB_NAME = "ViewProjection";
+		const GLuint PROGRAMS[NUM_SHADERS] = { defaultShader.GetProgram(), skybox.GetProgram(), reflRefr.GetProgram() };  // add the reference to the new shader's program here
+		GLuint i = 0;
+
 		glGenBuffers(1, &UBO);
 		glBindBuffer(GL_UNIFORM_BUFFER, UBO);
-		glBufferData(GL_UNIFORM_BUFFER, 4 * sizeof(glm::mat4), NULL, GL_DYNAMIC_DRAW);
+		glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), NULL, GL_DYNAMIC_DRAW);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
-		glBindBufferBase(GL_UNIFORM_BUFFER, BUFFER_BASE, UBO);
 
-		GLuint uTransformationBlockS = glGetUniformBlockIndex(shader->GetProgram(), "TransformationBlock");
-		glUniformBlockBinding(shader->GetProgram(), uTransformationBlockS, BUFFER_BASE);
-		GLuint uTransformationBlockO = glGetUniformBlockIndex(outliner->GetProgram(), "TransformationBlock");
-		glUniformBlockBinding(outliner->GetProgram(), uTransformationBlockO, BUFFER_BASE);
+		glBindBufferBase(GL_UNIFORM_BUFFER, BINDING_POINT0, UBO);
 		
-		glBindBuffer(GL_UNIFORM_BUFFER, UBO);
-		glBufferSubData(GL_UNIFORM_BUFFER, PROJECTION_OFFSET, sizeof(glm::mat4), glm::value_ptr(projection));
-		glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-		uEyePosition   = glGetUniformLocation(shader->GetProgram(), "eyePosition");
-		uWhichLight    = glGetUniformLocation(shader->GetProgram(), "whichLight");
-		uNormalFromMap = glGetUniformLocation(shader->GetProgram(), "normalFromMap");
-		uReflection	   = glGetUniformLocation(shader->GetProgram(), "reflection");
-	}
-
-	void ActivateLights(Shader* shader)
-	{
-		shader->Use();			
-			glUniform3fv(uEyePosition, 1, glm::value_ptr(camera->GetEyePos()));
-			glUniform1i(uWhichLight, whichLight);			
-			directionalLight->Use();
-			pointLight1->Use();
-			pointLight2->Use();
-			pointLight3->Use();
-			spotLight->position = glm::vec4(camera->GetEyePos(), 1.0f);
-			spotLight->direction = glm::vec4(camera->GetFront(), 0.0f);
-			spotLight->Use();
-		shader->Unuse();
-	}
-
-	void ActivateLightsInvertY(Shader* shader)
-	{
-		directionalLight->InvertY();
-		pointLight1->InvertY();
-		pointLight2->InvertY();
-		pointLight3->InvertY();	
-		ActivateLights(shader);		
-		pointLight1->InvertY();
-		pointLight2->InvertY();
-		pointLight3->InvertY();
-		directionalLight->InvertY();
-	}
-
-	void DrawFloor(Shader* shader)
-	{
-		glBindBuffer(GL_UNIFORM_BUFFER, UBO);
-		glBufferSubData(GL_UNIFORM_BUFFER, MODEL_OFFSET, sizeof(glm::mat4), glm::value_ptr(floorTransformation->GetModel()));
-		glBufferSubData(GL_UNIFORM_BUFFER, INV_TRANS_OFFSET, sizeof(glm::mat4), glm::value_ptr(floorTransformation->GetInverseTranspose()));
-		glBindBuffer(GL_UNIFORM_BUFFER, 0);
-		shader->Use();
-			glUniform1i(uNormalFromMap, 0);
-			floorMaterial->Use(shader->GetProgram());
-			planeTexDiff->Use(shader->GetProgram(), "maps.diffuse", 0);
-			planeTexNorm->Use(shader->GetProgram(), "maps.normal", 1);
-			planeTexSpec->Use(shader->GetProgram(), "maps.specular", 2);
-			floor->DrawElements();
-			planeTexSpec->Unuse();
-			planeTexNorm->Unuse();
-			planeTexDiff->Unuse();
-		shader->Unuse();
-	}
-
-	void DrawOutline(Shader* shader)
-	{	
-		glBindBuffer(GL_UNIFORM_BUFFER, UBO);
-		glBufferSubData(GL_UNIFORM_BUFFER, MODEL_OFFSET, sizeof(glm::mat4), glm::value_ptr(crateTransformation->GetModel()));
-		glBindBuffer(GL_UNIFORM_BUFFER, 0);		
-		shader->Use();
-			crate->DrawArrays();
-		shader->Unuse();
-	}
-
-	void DrawCrate(Shader* shader)
-	{
-		glBindBuffer(GL_UNIFORM_BUFFER, UBO);
-		glBufferSubData(GL_UNIFORM_BUFFER, MODEL_OFFSET, sizeof(glm::mat4), glm::value_ptr(crateTransformation->GetModel()));
-		glBufferSubData(GL_UNIFORM_BUFFER, INV_TRANS_OFFSET, sizeof(glm::mat4), glm::value_ptr(crateTransformation->GetInverseTranspose()));
-		glBindBuffer(GL_UNIFORM_BUFFER, 0);
-		shader->Use();
-			glUniform1i(uNormalFromMap, 0);
-			crateMaterial->Use(shader->GetProgram());
-			crateTexDiff->Use(shader->GetProgram(), "maps.diffuse", 0);
-			crateTexSpec->Use(shader->GetProgram(), "maps.specular", 1);
-			crate->DrawArrays();
-			crateTexSpec->Unuse();
-			crateTexDiff->Unuse();
-		shader->Unuse();
-	}
-
-	void DrawSkybox(Shader* shader)
-	{
-		glBindBuffer(GL_UNIFORM_BUFFER, UBO);
-		glBufferSubData(GL_UNIFORM_BUFFER, MODEL_OFFSET, sizeof(glm::mat4), glm::value_ptr(skyboxTransformation->GetModel()));
-		glBufferSubData(GL_UNIFORM_BUFFER, INV_TRANS_OFFSET, sizeof(glm::mat4), glm::value_ptr(skyboxTransformation->GetInverseTranspose()));
-		glBindBuffer(GL_UNIFORM_BUFFER, 0);
-		shader->Use();		
-		skyboxTex->Use();
-		crate->DrawArrays();		
-		skyboxTex->Unuse();
-		shader->Unuse();
-	}
-
-	void RenderScene()
-	{	
-		glBindBuffer(GL_UNIFORM_BUFFER, UBO);
-		glBufferSubData(GL_UNIFORM_BUFFER, VIEW_OFFSET, sizeof(glm::mat4), glm::value_ptr(camera->GetViewMatrix()));
-		glBindBuffer(GL_UNIFORM_BUFFER, 0);
-		
-		crateTransformation->Rotate(angle, glm::vec3(0.0f, 1.0f, 0.0f));
-
-		// Crate reflection	
-		if (true)
-		{	
-			shader->Use();
-			glUniform1i(uReflection, true);
-			shader->Unuse();
-
-			ActivateLightsInvertY(shader);
-			
-			glEnable(GL_STENCIL_TEST);
-			glClear(GL_STENCIL_BUFFER_BIT);
-
-			glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-
-			glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-			glDepthMask(GL_FALSE);
-			glStencilMask(0xFF); // enable writing to stencil buffer
-			glStencilFunc(GL_ALWAYS, 1, 0xFF);
-			DrawFloor(shader);
-
-			glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-			glDepthMask(GL_TRUE);
-			glStencilMask(0x00);
-			glStencilFunc(GL_EQUAL, 1, 0xFF);
-			crateTransformation->Scale(glm::vec3(5.0f, 5.0f, 5.0f));
-			crateTransformation->Translate(glm::vec3(0.0f, -5.0f, 0.0f));			
-			DrawCrate(shader);
-
-			glDisable(GL_STENCIL_TEST);
-		}
-
-		ActivateLights(shader);
-
-		shader->Use();
-		glUniform1i(uReflection, false);
-		shader->Unuse();		
-
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		DrawFloor(shader);
-		glDisable(GL_BLEND);
-
-		if (outlineCube)
+		for (i = 0; i < NUM_SHADERS; ++i)
 		{
-			// Outline
-			crateTransformation->Scale(glm::vec3(5.2f, 5.2f, 5.2f));
-			crateTransformation->Translate(glm::vec3(0.0f, 5.0f, 0.0f));			
-			DrawOutline(outliner);			
+			UBIndices[i] = glGetUniformBlockIndex(PROGRAMS[i], UB_NAME);
+			glUniformBlockBinding(PROGRAMS[i], UBIndices[i], BINDING_POINT0);
 		}
-		
-		// Skybox
-		// glFrontFace(GL_CW);	
-		// skyboxTransformation->Scale(glm::vec3(500.0f, 500.0f, 500.0f));
-		// DrawSkybox(skybox);
-		// glFrontFace(GL_CCW);
 
-		// Crate
-		glDisable(GL_DEPTH_TEST);
-		crateTransformation->Scale(glm::vec3(5.0f, 5.0f, 5.0f));
-		crateTransformation->Rotate(angle, glm::vec3(0.0f, 1.0f, 0.0f));
-		crateTransformation->Translate(glm::vec3(0.0f, 5.0f, 0.0f));
-		DrawCrate(shader);
-		glEnable(GL_DEPTH_TEST);
+		glm::mat4 projection = glm::perspective(70.0f, (GLfloat)wndWidth / (GLfloat)wndHeight, 0.1f, 1000.0f);
+		glBindBuffer(GL_UNIFORM_BUFFER, UBO);
+		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(projection));
+		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	}
 
-	~Renderer()
+public:
+	void IncrementAngle(GLfloat deltaTime) { angle += deltaTime; }
+
+	Renderer(Camera* camera, GLuint wndWidth, GLuint wndHeight)
+	{		
+		this->camera = camera;
+		this->wndWidth = wndWidth;
+		this->wndHeight = wndHeight;
+
+		CompileShaders();
+		SetupLights();
+		LoadMeshes();
+		SetupUniformBufferObjects();
+	}
+	
+	void RenderScene()
 	{
-		delete(shader);
-		delete(outliner);
+		glBindBuffer(GL_UNIFORM_BUFFER, UBO);
+		glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(camera->GetViewMatrix()));
+		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-		delete(directionalLight);
-		delete(pointLight1);
-		delete(pointLight2);
-		delete(spotLight);
+		// Skybox		
+		skyboxTransformation.Scale(glm::vec3(500.0f));
+		skyboxTransformation.Translate(camera->GetEyePos());
+		skybox.Use();
+			glUniformMatrix4fv(UniformLoc::MODEL, 1, false, glm::value_ptr(skyboxTransformation.GetModel()));			
+			glFrontFace(GL_CW);
+			skyboxTex.Use();
+			cube.DrawArrays();
+			skyboxTex.Unuse();
+			glFrontFace(GL_CCW);
+		skybox.Unuse();
 
-		delete(floor);
-		delete(floorTransformation);
-		delete(floorMaterial);
-		delete(planeTexDiff);
-		delete(planeTexNorm);
-		delete(planeTexSpec);
-		delete(crate);
-		delete(crateTransformation);
-		delete(crateMaterial);
-		delete(crateTexDiff);
-		delete(crateTexSpec);
+		// Lights
+		AcivateLights(defaultShader);
+
+		// Center sphere
+		defaultShader.Use();			
+			glUniform3fv(UniformLoc::EYE_POSITION, 1, glm::value_ptr(camera->GetEyePos()));
+		defaultShader.Use();				
+		loadedMeshTransformation.Scale(glm::vec3(50.0f));
+		loadedMeshTransformation.Translate(glm::vec3(0.0f, 5.0f, 0.0f));
+		defaultShader.Use();
+			glUniformMatrix4fv(UniformLoc::MODEL, 1, false, glm::value_ptr(loadedMeshTransformation.GetModel()));
+			glUniformMatrix4fv(UniformLoc::INVERSE_TRANSPOSE, 1, false, glm::value_ptr(loadedMeshTransformation.GetInverseTranspose()));						
+			cubeMaterial.Use(defaultShader.GetProgram());
+			marble.Use(defaultShader.GetProgram(), "maps.diffuse", 0);
+			loadedMesh.DrawElements();
+			marble.Unuse();
+		defaultShader.Unuse();	
+
+		// Reflective/Refractive spheres
+		reflRefr.Use();			
+			glUniform3fv(UniformLoc::EYE_POSITION, 1, glm::value_ptr(camera->GetEyePos()));
+		reflRefr.Use();
+		for (GLfloat i = -10.0f; i <= 10.0f; i += 20.0f)
+		{			
+			loadedMeshTransformation.Scale(glm::vec3(50.0f));
+			loadedMeshTransformation.Translate(glm::vec3(i, 5.0f, 0.0f));
+			reflRefr.Use();
+				glUniformMatrix4fv(UniformLoc::MODEL, 1, false, glm::value_ptr(loadedMeshTransformation.GetModel()));
+				glUniformMatrix4fv(UniformLoc::INVERSE_TRANSPOSE, 1, false, glm::value_ptr(loadedMeshTransformation.GetInverseTranspose()));
+				skyboxTex.Use();
+				cubeMaterial.Use(reflRefr.GetProgram());
+				loadedMesh.DrawElements();
+				skyboxTex.Unuse();
+			reflRefr.Unuse();
+		}
+
+		// Plane
+		defaultShader.Use();
+			glUniform3fv(UniformLoc::EYE_POSITION, 1, glm::value_ptr(camera->GetEyePos()));
+		defaultShader.Unuse();
+		planeTransformation.Translate(glm::vec3(0.0f, 0.0f, 0.0f));
+		defaultShader.Use();
+			glUniformMatrix4fv(UniformLoc::MODEL, 1, false, glm::value_ptr(planeTransformation.GetModel()));
+			glUniformMatrix4fv(UniformLoc::INVERSE_TRANSPOSE, 1, false, glm::value_ptr(planeTransformation.GetInverseTranspose()));
+			planeMaterial.Use(defaultShader.GetProgram());
+			checkered.Use(defaultShader.GetProgram(), "maps.diffuse", 0);		
+			plane.DrawElements();
+			checkered.Unuse();
+		defaultShader.Unuse();
 	}
+
+	~Renderer() { }
 };
 
 #endif

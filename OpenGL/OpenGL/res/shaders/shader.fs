@@ -1,27 +1,28 @@
 #version 420 core
-
-const float SPECULAR_STRENGTH = 2;
+#extension GL_ARB_explicit_uniform_location : enable
 
 struct Material
 {
-	vec4 ambient;
-	vec4 diffuse;
-	vec4 specular;
+	vec3 ambient;
+	vec3 diffuse;
+	vec3 specular;
 	float shininess;
 };
+uniform Material material;
 
 struct Light
 {
-	vec4 ambient;
-	vec4 diffuse;
-	vec4 specular;
-	vec4 position;
+	vec3 ambient;
+	vec3 diffuse;
+	vec3 specular;
+	vec3 position;
 };
 
 struct DirectionalLight
 {
 	Light light;
 };
+uniform DirectionalLight directionalLight;
 
 struct PointLight
 {
@@ -31,15 +32,17 @@ struct PointLight
 	float linear;
 	float quadratic;
 };
+uniform PointLight pointLight[3];
 
 struct SpotLight
 {
 	Light light;
 
-	vec4 direction;
+	vec3 direction;
 	float cutOff;
 	float outerCutOff;
 };
+uniform SpotLight spotLight;
 
 struct Maps
 {
@@ -47,64 +50,81 @@ struct Maps
 	sampler2D normal;
 	sampler2D specular;
 };
-
-in vec4 f_position;
-in vec4 f_normal;
-in vec2 f_texCoords;
-in mat4 f_inverseTranspose;
-
-uniform vec3 eyePosition;
-uniform int whichLight;
-uniform bool normalFromMap;
-uniform bool reflection;
-
-uniform Material material;
-
-#define NUM_POINT_LIGHTS 3
-
-uniform DirectionalLight directionalLight;
-uniform PointLight pointLight[NUM_POINT_LIGHTS];
-uniform SpotLight spotLight;
-
 uniform Maps maps;
+
+in VS_OUT
+{
+	vec4 position;
+	vec4 normal;
+	vec2 texCoords;
+} fs_in;
+
+// Fragment shader uniforms base: 20
+layout(location = 20) uniform vec3 eyePosition;
 
 out vec4 fragColor;
 
-float LinearizeDepth(float depth)
-{
-	float near = 0.1;
-	float far = 100.0;
-	float z = depth * 2.0 - 1.0;
-	return (2.0 * near) / (far + near - z * (far - near));
-}
-
 void Phong(in Light light, inout vec4 ambient, inout vec4 diffuse, inout vec4 specular)
 {
-	vec4 normal = normalize(f_normal);
-	if (normalFromMap)
-	{
-		// http://www.opengl-tutorial.org/intermediate-tutorials/tutorial-13-normal-mapping/
-	}
-
+	vec4 normal = normalize(fs_in.normal);
+	
 	vec4 lightVector, viewVector, reflectVector;
 	float diff, spec;
 
-	lightVector = normalize(light.position - f_position);
-	diff = max(dot(normal, lightVector), 0.1f);
+	lightVector = normalize(vec4(light.position, 1.0f) - fs_in.position);
+	diff = max(dot(normal, lightVector), 0.0f);
 
-	viewVector    = normalize(vec4(eyePosition, 1.0f) - f_position);
+	viewVector    = normalize(vec4(eyePosition, 1.0f) - fs_in.position);
 	reflectVector = normalize(reflect(-lightVector, normal));
-	spec = pow(max(dot(viewVector, reflectVector), 0.1f), material.shininess);
+	spec = pow(max(dot(viewVector, reflectVector), 0.0f), material.shininess);
 
-	ambient  *= light.ambient;
-	diffuse  *= diff * light.diffuse;
-	specular *= spec * light.specular;	
+	ambient  += 	   vec4(light.ambient, 1.0f);
+	diffuse  += diff * vec4(light.diffuse, 1.0f);
+	specular += spec * vec4(light.specular, 1.0f);	
 }
+
+void CalcPointLight(in PointLight pointLight, inout vec4 ambient, inout vec4 diffuse, inout vec4 specular);
+void CalcSpotLight(in SpotLight spotLight, inout vec4 ambient, inout vec4 diffuse, inout vec4 specular);
+
+void main()
+{	
+	vec4 ambient, diffuse, specular;	
+	ambient = diffuse = specular = vec4(0.0f);
+
+	vec4 tmpAmbient, tmpDiffuse, tmpSpecular;
+
+	tmpAmbient = tmpDiffuse = tmpSpecular = vec4(0.0f);
+	Phong(directionalLight.light, tmpAmbient, tmpDiffuse, tmpSpecular);
+	ambient += tmpAmbient;
+	diffuse += tmpDiffuse;
+	specular += tmpSpecular;		
+		
+	for(int i = 0; i < 3; ++i)
+	{	
+		tmpAmbient = tmpDiffuse = tmpSpecular = vec4(0.0f);
+		CalcPointLight(pointLight[i], tmpAmbient, tmpDiffuse, tmpSpecular);
+		ambient += tmpAmbient;
+		diffuse += tmpDiffuse;
+		specular += tmpSpecular;
+	}	
+
+	// tmpAmbient = tmpDiffuse = tmpSpecular = vec4(0.0f);
+	// CalcSpotLight(spotLight, tmpAmbient, tmpDiffuse, tmpSpecular);
+	// ambient += tmpAmbient;
+	// diffuse += tmpDiffuse;
+	// specular += tmpSpecular;
+
+    fragColor = (ambient + diffuse + specular) * texture(maps.diffuse, fs_in.texCoords);
+}
+
+
+
+
 
 void CalcPointLight(in PointLight pointLight, inout vec4 ambient, inout vec4 diffuse, inout vec4 specular)
 {
 	Phong(pointLight.light, ambient, diffuse, specular);
-	float dist = length(pointLight.light.position - f_position);
+	float dist = length(vec4(pointLight.light.position, 1.0f) - fs_in.position);
 	float atenuation = 1.0f / (pointLight.constant + pointLight.linear * dist + pointLight.quadratic * pow(dist, 2));
 	ambient  *= atenuation;
 	diffuse  *= atenuation;
@@ -113,8 +133,8 @@ void CalcPointLight(in PointLight pointLight, inout vec4 ambient, inout vec4 dif
 
 void CalcSpotLight(in SpotLight spotLight, inout vec4 ambient, inout vec4 diffuse, inout vec4 specular)
 {
-	vec4 lightVector = normalize(spotLight.light.position - f_position);
-	float theta = dot(lightVector, normalize(-spotLight.direction));		
+	vec4 lightVector = normalize(vec4(spotLight.light.position, 1.0f) - fs_in.position);
+	float theta = dot(lightVector, normalize(-vec4(spotLight.direction, 0.0f)));		
 	if(theta > spotLight.cutOff)
 	{
 		Phong(spotLight.light, ambient, diffuse, specular);
@@ -125,60 +145,8 @@ void CalcSpotLight(in SpotLight spotLight, inout vec4 ambient, inout vec4 diffus
 	}
 	else
 	{
-		ambient  = spotLight.light.ambient;
+		ambient  = vec4(spotLight.light.ambient, 1.0f);
 		diffuse  = vec4(0.0f);
 		specular = vec4(0.0f);
 	}
-}
-
-void main()
-{	
-	vec4 ambient  = material.ambient;
-	vec4 diffuse  = material.diffuse;
-	vec4 specular = material.specular * SPECULAR_STRENGTH * texture2D(maps.specular, f_texCoords);
-	// ===========================================================
-	// directional
-	// ===========================================================
-	if(whichLight == 1)
-	{
-		Phong(directionalLight.light, ambient, diffuse, specular);
-	}
-	// ===========================================================
-	// point 
-	// ===========================================================
-	if(whichLight == 2)
-	{	
-		vec4 a, d, s;
-		vec4 resa = vec4(0.0f), resd = vec4(0.0f), ress = vec4(0.0f);
-		for(int i = 0; i < NUM_POINT_LIGHTS; ++i)
-		{
-			a = d = s = vec4(1.0f);
-			CalcPointLight(pointLight[i], a, d, s);
-			resa += a;
-			resd += d;
-			ress += s;
-		}
-		ambient  *= resa;
-		diffuse  *= resd;
-		specular *= ress;
-	}
-	// ===========================================================
-	// spot 
-	// ===========================================================
-	if(whichLight == 3)
-	{
-		CalcSpotLight(spotLight, ambient, diffuse, specular);
-	}
-
-    fragColor = (ambient + diffuse + specular) * vec4(texture2D(maps.diffuse, f_texCoords).rgb, 0.4f);
-
-    //float depth = LinearizeDepth(gl_FragCoord.z);
-    //fragColor = vec4(vec3(depth), 1.0f);
-
-    if(reflection)
-    {
-    	vec4 above = vec4(f_position.x, 0, f_position.z, 1.0f);
-    	float len = length(above - f_position);
-    	fragColor *= 1.0f / len;
-    }
 }

@@ -1,17 +1,19 @@
 #version 420 core
+#extension GL_ARB_explicit_uniform_location : enable
 
 layout (location = 0) in vec3 position;
 layout (location = 1) in vec3 normal;
-layout (location = 2) in vec3 color;
-layout (location = 3) in vec2 texCoords;
+layout (location = 2) in vec2 texCoords;
 
-layout (std140, binding = 0) uniform TransformationBlock
+layout(std140) uniform ViewProjection
 {
-	mat4 model;
 	mat4 view;
 	mat4 projection;
-	mat4 inverseTranspose;
 };
+
+// Transformation matrices base: 10
+layout(location = 10) uniform mat4 model;
+layout(location = 11) uniform mat4 inverseTranspose;
 
 void main()
 {

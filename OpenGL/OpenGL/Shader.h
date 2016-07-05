@@ -12,7 +12,6 @@ class Shader
 {
 private:
 	GLuint vertex;
-	GLuint geometry;
 	GLuint fragment;
 	GLuint program;
 
@@ -63,16 +62,16 @@ private:
 		GLint success;
 		GLchar infoLog[512];
 
-		this->program = glCreateProgram();
+		program = glCreateProgram();
 
 		for (GLuint i = 0; i < numShaders; ++i)
-			glAttachShader(this->program, shaders[i]);
+			glAttachShader(program, shaders[i]);
 
-		glLinkProgram(this->program);
-		glGetProgramiv(this->program, GL_LINK_STATUS, &success);
+		glLinkProgram(program);
+		glGetProgramiv(program, GL_LINK_STATUS, &success);
 		if (!success)
 		{
-			glGetProgramInfoLog(this->program, 512, NULL, infoLog);
+			glGetProgramInfoLog(program, 512, NULL, infoLog);
 			std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
 		}
 
@@ -82,6 +81,14 @@ private:
 
 public:
 	Shader() { }
+
+	Shader& operator=(const Shader& shader)
+	{
+		vertex	 = shader.vertex;		
+		fragment = shader.fragment;
+		program  = shader.program;		
+		return *this;
+	}
 
 	const GLuint& GetProgram() { return program; }
 
@@ -95,7 +102,7 @@ public:
 		
 	void Use()
 	{
-		glUseProgram(this->program);
+		glUseProgram(program);
 	}
 
 	void Unuse()
