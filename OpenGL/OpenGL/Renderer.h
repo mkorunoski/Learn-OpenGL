@@ -151,7 +151,7 @@ private:
 
 		Geometry::GenerateCube(vertices);
 		cubeMesh	= Mesh(vertices);
-		Geometry::GeneratePlane(50, 50, 50, 50, vertices, indices);
+		Geometry::GeneratePlane(30, 30, 2, 2, vertices, indices);
 		planeMesh	= Mesh(vertices, indices);
 		Geometry::GenerateFromFile("./res/objects/sphere.obj", vertices, indices);
 		loadedMesh	= Mesh(vertices, indices);
@@ -296,8 +296,8 @@ public:
 		defaultShaderNM.Use();
 			glUniform3fv(UniformLoc::EYE_POSITION, 1, glm::value_ptr(camera->GetEyePos()));
 		defaultShaderNM.Unuse();
-		planeTransformation.Rotate(glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-		planeTransformation.Translate(glm::vec3(0.0f, 25.0f, 25.0f));		
+		planeTransformation.Rotate(glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
+		planeTransformation.Translate(glm::vec3(0.0f, 15.0f, 15.0f));		
 		defaultShaderNM.Use();
 			glUniformMatrix4fv(UniformLoc::MODEL, 1, false, glm::value_ptr(planeTransformation.GetModel()));
 			glUniformMatrix4fv(UniformLoc::INVERSE_TRANSPOSE, 1, false, glm::value_ptr(planeTransformation.GetInverseTranspose()));			
