@@ -69,6 +69,12 @@ public:
 		this->position.y = -1 * this->position.y;
 	}
 
+	void Move(GLfloat dx, GLfloat dz)
+	{
+		position.x = dx;
+		position.z = dz;
+	}
+
 	~DirectionalLight() { }
 };
 

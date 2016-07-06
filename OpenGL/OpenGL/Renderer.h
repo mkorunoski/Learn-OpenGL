@@ -32,10 +32,11 @@ private:
 	Camera* camera;	
 
 	// Shaders
-	static const GLuint NUM_SHADERS = 3;
+	static const GLuint NUM_SHADERS = 4;
 	Shader defaultShader;
-	Shader skybox;
-	Shader reflRefr;
+	Shader defaultShaderNM;
+	Shader skyboxShader;
+	Shader reflRefrShader;
 	
 	// Lights
 	static const GLuint NUM_POINT_LIGHTS = 3;
@@ -44,12 +45,13 @@ private:
 	SpotLight spotLight;
 	
 	// Meshes
-	Mesh cube;
-	Mesh plane;
+	Mesh cubeMesh;
+	Mesh planeMesh;
 	Mesh loadedMesh;
 
 	Material cubeMaterial;	
 	Material planeMaterial;
+	Material wallMaterial;
 	Material loadedMeshMaterial;
 
 	Transformation cubeTransformation;
@@ -57,30 +59,37 @@ private:
 	Transformation loadedMeshTransformation;
 	Transformation skyboxTransformation;
 
-	Texture checkered;
-	Texture marble;
-	Texture waterNormalMap;
+	Texture checkeredTex;
+	Texture marbleTex;
+	Texture waterDiffuseTex;
+	Texture waterNormalTex;
+	Texture waterBumpTex;
+	Texture wallDiffuseTex;
+	Texture wallNormalTex;	
 	CubemapTexture skyboxTex;
 
 	GLuint UBO;
 	
 public:
 	// For animation	
-	GLfloat angle = 0.0f;	
+	GLfloat dt	= 0.0f;	
+	GLfloat A	= 50.0f;
+	GLfloat t	= 0.5f;
 
 private:
 	void CompileShaders()
 	{
-		defaultShader = Shader("./res/shaders/shader.vs", "./res/shaders/shader.fs");
-		skybox		  = Shader("./res/shaders/skybox.vs", "./res/shaders/skybox.fs");
-		reflRefr	  = Shader("./res/shaders/reflective_refractive.vs", "./res/shaders/reflective_refractive.fs");
+		defaultShader	= Shader("./res/shaders/default_shader.vs", "./res/shaders/default_shader.fs", "default_shader");
+		defaultShaderNM = Shader("./res/shaders/default_shader_nm.vs", "./res/shaders/default_shader_nm.fs", "default_shader_nm");
+		skyboxShader	= Shader("./res/shaders/skybox.vs", "./res/shaders/skybox.fs", "skybox");
+		reflRefrShader	= Shader("./res/shaders/reflective_refractive.vs", "./res/shaders/reflective_refractive.fs", "reflective_refractive");
 	}
 
 	void SetupLights()
 	{
 		directionalLight = DirectionalLight(
-			glm::vec3(0.1f), glm::vec3(0.5f), glm::vec3(0.5f),
-			glm::vec3(-10.0f, 50.0f, -10.0f));
+			glm::vec3(0.2f), glm::vec3(0.8f), glm::vec3(0.5f),
+			glm::vec3(0.0f, 25.0f, 0.0f));
 		
 		pointLights[0] = PointLight(
 			glm::vec3(0.1f), glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.01f),
@@ -102,20 +111,37 @@ private:
 			17.5f, 12.5f);
 	}
 
-	void AcivateLights(Shader& shader)
+	void ActivateDirectionalLights(Shader& shader)
 	{
 		directionalLight.SetUniforms(shader.GetProgram());
-		for (GLuint i = 0; i < NUM_POINT_LIGHTS; ++i)
-			pointLights[i].SetUniforms(shader.GetProgram(), i);
-		spotLight.SetUniforms(shader.GetProgram());
 		shader.Use();
 			directionalLight.Use();
+		shader.Unuse();
+	}
+	void ActivatePointLights(Shader& shader)
+	{
+		for (GLuint i = 0; i < NUM_POINT_LIGHTS; ++i)
+			pointLights[i].SetUniforms(shader.GetProgram(), i);
+		shader.Use();
 			for (int i = 0; i < NUM_POINT_LIGHTS; ++i)
 				pointLights[i].Use();
+		shader.Unuse();
+	}
+	void ActivateSpotLight(Shader& shader)
+	{
+		spotLight.SetUniforms(shader.GetProgram());
+		shader.Use();
 			spotLight.SetPosition(camera->GetEyePos());
 			spotLight.SetDirection(camera->GetFront());
 			spotLight.Use();
 		shader.Unuse();
+	}
+
+	void AcivateLights(Shader& shader)
+	{
+		ActivateDirectionalLights(shader);
+		ActivatePointLights(shader);		
+		ActivateSpotLight(shader);
 	}
 
 	void LoadMeshes()
@@ -124,25 +150,30 @@ private:
 		std::vector<GLuint> indices;
 
 		Geometry::GenerateCube(vertices);
-		cube		= Mesh(vertices);
-		Geometry::GeneratePlane(50, 50, 10, 10, vertices, indices);
-		plane		= Mesh(vertices, indices);
+		cubeMesh	= Mesh(vertices);
+		Geometry::GeneratePlane(50, 50, 50, 50, vertices, indices);
+		planeMesh	= Mesh(vertices, indices);
 		Geometry::GenerateFromFile("./res/objects/sphere.obj", vertices, indices);
 		loadedMesh	= Mesh(vertices, indices);
 
 		cubeTransformation		 = Transformation();
 		planeTransformation		 = Transformation();
 		loadedMeshTransformation = Transformation();		
+		skyboxTransformation	 = Transformation();
 		
-		cubeMaterial		 = Material(glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(1.0f), 64);
-		planeMaterial		 = Material(glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(1.0f), 128);
-		loadedMeshMaterial	 = Material(glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(1.0f), 2);
-		skyboxTransformation = Transformation();
+		cubeMaterial		 = Material(glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(1.0f), 2);
+		planeMaterial		 = Material(glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(1.0f), 64);
+		wallMaterial		 = Material(glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(1.0f), 2);
+		loadedMeshMaterial	 = Material(glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(1.0f), 64);		
 
-		checkered = Texture("./res/textures/checkered.jpg");
-		marble	  = Texture("./res/textures/marble.jpg");
-		waterNormalMap = Texture("./res/textures/water_nm.jpg");
-		skyboxTex = CubemapTexture("./res/textures/cubemaps/", "jpg");
+		checkeredTex	= Texture("./res/textures/checkered.jpg");
+		marbleTex		= Texture("./res/textures/marble.jpg");
+		waterNormalTex	= Texture("./res/textures/water/normal.jpg");
+		waterDiffuseTex	= Texture("./res/textures/water/diffuse.jpg");
+		wallNormalTex	= Texture("./res/textures/wall/normal.jpg");
+		wallDiffuseTex	= Texture("./res/textures/wall/diffuse.jpg");
+		waterBumpTex	= Texture("./res/textures/water/bump.jpg");
+		skyboxTex		= CubemapTexture("./res/textures/cubemaps/", "jpg");		
 	}
 
 	void SetupUniformBufferObjects()
@@ -150,7 +181,7 @@ private:
 		const GLuint BINDING_POINT0 = 0;
 		GLuint UBIndices[NUM_SHADERS];
 		const GLchar* UB_NAME = "ViewProjection";
-		const GLuint PROGRAMS[NUM_SHADERS] = { defaultShader.GetProgram(), skybox.GetProgram(), reflRefr.GetProgram() };  // add the reference to the new shader's program here
+		const GLuint PROGRAMS[NUM_SHADERS] = { defaultShader.GetProgram(), defaultShaderNM.GetProgram(), skyboxShader.GetProgram(), reflRefrShader.GetProgram() };  // add the reference to the new shader's program here
 		GLuint i = 0;
 
 		glGenBuffers(1, &UBO);
@@ -173,7 +204,7 @@ private:
 	}
 
 public:
-	void IncrementAngle(GLfloat deltaTime) { angle += deltaTime; }
+	void IncrementAngle(GLfloat deltaTime) { dt += deltaTime; }
 
 	Renderer(Camera* camera, GLuint wndWidth, GLuint wndHeight)
 	{		
@@ -188,7 +219,9 @@ public:
 	}
 	
 	void RenderScene()
-	{
+	{		
+		directionalLight.Move(A * glm::sin(t * dt), A * glm::cos(t * dt));
+
 		glBindBuffer(GL_UNIFORM_BUFFER, UBO);
 		glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(camera->GetViewMatrix()));
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
@@ -196,14 +229,14 @@ public:
 		// Skybox		
 		skyboxTransformation.Scale(glm::vec3(500.0f));
 		skyboxTransformation.Translate(camera->GetEyePos());
-		skybox.Use();
+		skyboxShader.Use();
 			glUniformMatrix4fv(UniformLoc::MODEL, 1, false, glm::value_ptr(skyboxTransformation.GetModel()));			
 			glFrontFace(GL_CW);
 			skyboxTex.Use();
-			cube.DrawArrays();
+			cubeMesh.DrawArrays();
 			skyboxTex.Unuse();
 			glFrontFace(GL_CCW);
-		skybox.Unuse();
+		skyboxShader.Unuse();
 
 		// Lights
 		AcivateLights(defaultShader);
@@ -217,43 +250,64 @@ public:
 		defaultShader.Use();
 			glUniformMatrix4fv(UniformLoc::MODEL, 1, false, glm::value_ptr(loadedMeshTransformation.GetModel()));
 			glUniformMatrix4fv(UniformLoc::INVERSE_TRANSPOSE, 1, false, glm::value_ptr(loadedMeshTransformation.GetInverseTranspose()));						
-			cubeMaterial.Use(defaultShader.GetProgram());
-			marble.Use(defaultShader.GetProgram(), "maps.diffuse", 0);
+			loadedMeshMaterial.Use(defaultShader.GetProgram());
+			marbleTex.Use(defaultShader.GetProgram(), "maps.diffuse", 0);
 			loadedMesh.DrawElements();
-			marble.Unuse();
+			marbleTex.Unuse();
 		defaultShader.Unuse();	
 
 		// Reflective/Refractive spheres
-		reflRefr.Use();			
+		reflRefrShader.Use();			
 			glUniform3fv(UniformLoc::EYE_POSITION, 1, glm::value_ptr(camera->GetEyePos()));
-		reflRefr.Use();
+		reflRefrShader.Use();
 		for (GLfloat i = -10.0f; i <= 10.0f; i += 20.0f)
 		{			
 			loadedMeshTransformation.Scale(glm::vec3(50.0f));
 			loadedMeshTransformation.Translate(glm::vec3(i, 5.0f, 0.0f));
-			reflRefr.Use();
+			reflRefrShader.Use();
 				glUniformMatrix4fv(UniformLoc::MODEL, 1, false, glm::value_ptr(loadedMeshTransformation.GetModel()));
 				glUniformMatrix4fv(UniformLoc::INVERSE_TRANSPOSE, 1, false, glm::value_ptr(loadedMeshTransformation.GetInverseTranspose()));
 				skyboxTex.Use();
-				cubeMaterial.Use(reflRefr.GetProgram());
+				loadedMeshMaterial.Use(reflRefrShader.GetProgram());
 				loadedMesh.DrawElements();
 				skyboxTex.Unuse();
-			reflRefr.Unuse();
+			reflRefrShader.Unuse();
 		}
 
-		// Plane
+		// Floor
 		defaultShader.Use();
 			glUniform3fv(UniformLoc::EYE_POSITION, 1, glm::value_ptr(camera->GetEyePos()));
 		defaultShader.Unuse();
+		planeTransformation.Rotate(0.0f, glm::vec3(1.0f, 0.0f, 0.0f));
 		planeTransformation.Translate(glm::vec3(0.0f, 0.0f, 0.0f));
 		defaultShader.Use();
 			glUniformMatrix4fv(UniformLoc::MODEL, 1, false, glm::value_ptr(planeTransformation.GetModel()));
 			glUniformMatrix4fv(UniformLoc::INVERSE_TRANSPOSE, 1, false, glm::value_ptr(planeTransformation.GetInverseTranspose()));
 			planeMaterial.Use(defaultShader.GetProgram());
-			checkered.Use(defaultShader.GetProgram(), "maps.diffuse", 0);		
-			plane.DrawElements();
-			checkered.Unuse();
+			checkeredTex.Use(defaultShader.GetProgram(), "maps.diffuse", 0);
+			planeMesh.DrawElements();
+			checkeredTex.Unuse();
 		defaultShader.Unuse();
+				
+		// Lights
+		ActivateDirectionalLights(defaultShaderNM);
+
+		// Wall
+		defaultShaderNM.Use();
+			glUniform3fv(UniformLoc::EYE_POSITION, 1, glm::value_ptr(camera->GetEyePos()));
+		defaultShaderNM.Unuse();
+		planeTransformation.Rotate(glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		planeTransformation.Translate(glm::vec3(0.0f, 25.0f, 25.0f));		
+		defaultShaderNM.Use();
+			glUniformMatrix4fv(UniformLoc::MODEL, 1, false, glm::value_ptr(planeTransformation.GetModel()));
+			glUniformMatrix4fv(UniformLoc::INVERSE_TRANSPOSE, 1, false, glm::value_ptr(planeTransformation.GetInverseTranspose()));			
+			wallMaterial.Use(defaultShaderNM.GetProgram());
+			wallDiffuseTex.Use(defaultShaderNM.GetProgram(), "maps.diffuse", 0);
+			wallNormalTex.Use(defaultShaderNM.GetProgram(), "maps.normal", 1);
+			planeMesh.DrawElements();
+			wallNormalTex.Unuse();
+			wallDiffuseTex.Unuse();
+		defaultShaderNM.Unuse();		
 	}
 
 	~Renderer() { }

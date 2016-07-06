@@ -8,13 +8,15 @@
 const GLuint POSITION_LENGTH	= 3;
 const GLuint NORMAL_LENGTH		= 3;
 const GLuint TEX_COORDS_LENGTH	= 2;
-const GLuint VERTEX_LENGTH		= POSITION_LENGTH + NORMAL_LENGTH + TEX_COORDS_LENGTH;
+const GLuint TANGENG_LENGTH		= 3;
+const GLuint VERTEX_LENGTH		= POSITION_LENGTH + NORMAL_LENGTH + TEX_COORDS_LENGTH + TANGENG_LENGTH;
 
 enum ATTRIBUTE_LOCATION
 {
 	POSITION = 0,
 	NORMAL,	
-	TEX_COORDS
+	TEX_COORDS,
+	TANGENT
 };
 
 typedef struct Vertex
@@ -22,19 +24,22 @@ typedef struct Vertex
 	glm::vec3 position;
 	glm::vec3 normal;	
 	glm::vec2 texCoords;
+	glm::vec3 tangent;
 
 	Vertex()
 	{
-		this->position	= glm::vec3(0.0f);
-		this->normal	= glm::vec3(0.0f);
-		this->texCoords = glm::vec2(0.0f);
+		position	= glm::vec3(0.0f);
+		normal		= glm::vec3(0.0f);
+		texCoords	= glm::vec2(0.0f);
+		tangent		= glm::vec3(0.0f);
 	}
 
-	Vertex(const glm::vec3& position, const glm::vec3& normal, const glm::vec2& texCoords)
+	Vertex(const glm::vec3& position, const glm::vec3& normal, const glm::vec2& texCoords, const glm::vec3& tangent)
 	{
 		this->position	= position;
 		this->normal	= normal;
 		this->texCoords = texCoords;
+		this->tangent	= tangent;
 	}
 } Vertex;
 
@@ -68,6 +73,13 @@ private:
 			VERTEX_LENGTH * sizeof(GLfloat),
 			(const GLvoid*)offsetof(Vertex, texCoords));
 		glEnableVertexAttribArray(ATTRIBUTE_LOCATION::TEX_COORDS);
+
+		glVertexAttribPointer(ATTRIBUTE_LOCATION::TANGENT,
+			TANGENG_LENGTH,
+			GL_FLOAT, GL_FALSE,
+			VERTEX_LENGTH * sizeof(GLfloat),
+			(const GLvoid*)offsetof(Vertex, tangent));
+		glEnableVertexAttribArray(ATTRIBUTE_LOCATION::TANGENT);
 	}
 
 public:

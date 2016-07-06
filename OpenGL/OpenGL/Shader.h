@@ -15,6 +15,8 @@ private:
 	GLuint fragment;
 	GLuint program;
 
+	std::string shaderName;
+	
 	GLuint CompileShader(const std::string& path, GLuint shaderType, const std::string& name)
 	{
 		std::string code;
@@ -50,8 +52,8 @@ private:
 		glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
 		if (!success)
 		{
-			glGetShaderInfoLog(shader, 512, NULL, infoLog);
-			std::cout << "ERROR::SHADER::" + name + "::COMPILATION_FAILED\n" << infoLog << std::endl;
+			glGetShaderInfoLog(shader, 512, NULL, infoLog);			
+			std::cout << "ERROR::SHADER:" + shaderName + ":" + name + "::COMPILATION_FAILED\n" << infoLog << std::endl;
 		}
 
 		return shader;
@@ -72,7 +74,7 @@ private:
 		if (!success)
 		{
 			glGetProgramInfoLog(program, 512, NULL, infoLog);
-			std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
+			std::cout << "ERROR::SHADER:" + shaderName + ":" + "PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
 		}
 
 		for (GLuint i = 0; i < numShaders; ++i)
@@ -86,14 +88,16 @@ public:
 	{
 		vertex	 = shader.vertex;		
 		fragment = shader.fragment;
-		program  = shader.program;		
+		program  = shader.program;
+		shaderName.assign(shader.shaderName);
 		return *this;
 	}
 
 	const GLuint& GetProgram() { return program; }
 
-	Shader(const GLchar* vertexPath, const GLchar* fragmentPath)
+	Shader(const GLchar* vertexPath, const GLchar* fragmentPath, const std::string& shaderName)
 	{
+		this->shaderName.assign(shaderName);
 		vertex	 = CompileShader(vertexPath, GL_VERTEX_SHADER, "VERTEX");
 		fragment = CompileShader(fragmentPath, GL_FRAGMENT_SHADER, "FRAGMENT");
 

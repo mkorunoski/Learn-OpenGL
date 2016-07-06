@@ -40,9 +40,10 @@ public:
 			for (GLuint j = 0; j < n; ++j)
 			{
 				GLfloat x = -halfWidth + j * dx;
-				vertices[i * n + j].position = glm::vec3(x, 0.0f, z);
-				vertices[i * n + j].texCoords = glm::vec2(j * du, i * dv);
-				vertices[i * n + j].normal	 = POS_Y;				
+				vertices[i * n + j].position	= glm::vec3(x, 0.0f, z);
+				vertices[i * n + j].texCoords	= glm::vec2(j * du, i * dv);
+				vertices[i * n + j].normal		= POS_Y;
+				vertices[i * n + j].tangent		= POS_X;
 			}
 		}
 
@@ -80,60 +81,67 @@ public:
 		glm::vec3 h(-0.5f, +0.5f, -0.5f);
 
 		glm::vec3 normal;
+		glm::vec3 tangent;
 		GLuint i = 0;
 		//front
-		normal = POS_Z;
-		vertices[i++] = Vertex(d, normal, TEX_COORDS_ARR[0]);
-		vertices[i++] = Vertex(c, normal, TEX_COORDS_ARR[1]);
-		vertices[i++] = Vertex(f, normal, TEX_COORDS_ARR[2]);
-		vertices[i++] = Vertex(d, normal, TEX_COORDS_ARR[0]);
-		vertices[i++] = Vertex(f, normal, TEX_COORDS_ARR[2]);
-		vertices[i++] = Vertex(e, normal, TEX_COORDS_ARR[3]);
+		normal	= POS_Z;
+		tangent = POS_X;
+		vertices[i++] = Vertex(d, normal, TEX_COORDS_ARR[0], tangent);
+		vertices[i++] = Vertex(c, normal, TEX_COORDS_ARR[1], tangent);
+		vertices[i++] = Vertex(f, normal, TEX_COORDS_ARR[2], tangent);
+		vertices[i++] = Vertex(d, normal, TEX_COORDS_ARR[0], tangent);
+		vertices[i++] = Vertex(f, normal, TEX_COORDS_ARR[2], tangent);
+		vertices[i++] = Vertex(e, normal, TEX_COORDS_ARR[3], tangent);
 
 		//back
-		normal = NEG_Z;
-		vertices[i++] = Vertex(b, normal, TEX_COORDS_ARR[0]);
-		vertices[i++] = Vertex(a, normal, TEX_COORDS_ARR[1]);
-		vertices[i++] = Vertex(h, normal, TEX_COORDS_ARR[2]);
-		vertices[i++] = Vertex(b, normal, TEX_COORDS_ARR[0]);
-		vertices[i++] = Vertex(h, normal, TEX_COORDS_ARR[2]);
-		vertices[i++] = Vertex(g, normal, TEX_COORDS_ARR[3]);
+		normal	= NEG_Z;
+		tangent = NEG_X;
+		vertices[i++] = Vertex(b, normal, TEX_COORDS_ARR[0], tangent);
+		vertices[i++] = Vertex(a, normal, TEX_COORDS_ARR[1], tangent);
+		vertices[i++] = Vertex(h, normal, TEX_COORDS_ARR[2], tangent);
+		vertices[i++] = Vertex(b, normal, TEX_COORDS_ARR[0], tangent);
+		vertices[i++] = Vertex(h, normal, TEX_COORDS_ARR[2], tangent);
+		vertices[i++] = Vertex(g, normal, TEX_COORDS_ARR[3], tangent);
 
 		//left
-		normal = NEG_X;
-		vertices[i++] = Vertex(a, normal, TEX_COORDS_ARR[0]);
-		vertices[i++] = Vertex(d, normal, TEX_COORDS_ARR[1]);
-		vertices[i++] = Vertex(e, normal, TEX_COORDS_ARR[2]);
-		vertices[i++] = Vertex(a, normal, TEX_COORDS_ARR[0]);
-		vertices[i++] = Vertex(e, normal, TEX_COORDS_ARR[2]);
-		vertices[i++] = Vertex(h, normal, TEX_COORDS_ARR[3]);
+		normal	= NEG_X;
+		tangent = POS_Z;
+		vertices[i++] = Vertex(a, normal, TEX_COORDS_ARR[0], tangent);
+		vertices[i++] = Vertex(d, normal, TEX_COORDS_ARR[1], tangent);
+		vertices[i++] = Vertex(e, normal, TEX_COORDS_ARR[2], tangent);
+		vertices[i++] = Vertex(a, normal, TEX_COORDS_ARR[0], tangent);
+		vertices[i++] = Vertex(e, normal, TEX_COORDS_ARR[2], tangent);
+		vertices[i++] = Vertex(h, normal, TEX_COORDS_ARR[3], tangent);
 
 		//right
-		normal = POS_X;
-		vertices[i++] = Vertex(c, normal, TEX_COORDS_ARR[0]);
-		vertices[i++] = Vertex(b, normal, TEX_COORDS_ARR[1]);
-		vertices[i++] = Vertex(g, normal, TEX_COORDS_ARR[2]);
-		vertices[i++] = Vertex(c, normal, TEX_COORDS_ARR[0]);
-		vertices[i++] = Vertex(g, normal, TEX_COORDS_ARR[2]);
-		vertices[i++] = Vertex(f, normal, TEX_COORDS_ARR[3]);
+		normal	= POS_X;
+		tangent = NEG_Z;
+		vertices[i++] = Vertex(c, normal, TEX_COORDS_ARR[0], tangent);
+		vertices[i++] = Vertex(b, normal, TEX_COORDS_ARR[1], tangent);
+		vertices[i++] = Vertex(g, normal, TEX_COORDS_ARR[2], tangent);
+		vertices[i++] = Vertex(c, normal, TEX_COORDS_ARR[0], tangent);
+		vertices[i++] = Vertex(g, normal, TEX_COORDS_ARR[2], tangent);
+		vertices[i++] = Vertex(f, normal, TEX_COORDS_ARR[3], tangent);
 
 		//top
-		normal = POS_Y;
-		vertices[i++] = Vertex(e, normal, TEX_COORDS_ARR[0]);
-		vertices[i++] = Vertex(f, normal, TEX_COORDS_ARR[1]);
-		vertices[i++] = Vertex(g, normal, TEX_COORDS_ARR[2]);
-		vertices[i++] = Vertex(e, normal, TEX_COORDS_ARR[0]);
-		vertices[i++] = Vertex(g, normal, TEX_COORDS_ARR[2]);
-		vertices[i++] = Vertex(h, normal, TEX_COORDS_ARR[3]);
+		normal	= POS_Y;
+		tangent = POS_X;
+		vertices[i++] = Vertex(e, normal, TEX_COORDS_ARR[0], tangent);
+		vertices[i++] = Vertex(f, normal, TEX_COORDS_ARR[1], tangent);
+		vertices[i++] = Vertex(g, normal, TEX_COORDS_ARR[2], tangent);
+		vertices[i++] = Vertex(e, normal, TEX_COORDS_ARR[0], tangent);
+		vertices[i++] = Vertex(g, normal, TEX_COORDS_ARR[2], tangent);
+		vertices[i++] = Vertex(h, normal, TEX_COORDS_ARR[3], tangent);
 
 		//bottom
-		normal = NEG_Y;
-		vertices[i++] = Vertex(a, normal, TEX_COORDS_ARR[0]);
-		vertices[i++] = Vertex(b, normal, TEX_COORDS_ARR[1]);
-		vertices[i++] = Vertex(c, normal, TEX_COORDS_ARR[2]);
-		vertices[i++] = Vertex(a, normal, TEX_COORDS_ARR[0]);
-		vertices[i++] = Vertex(c, normal, TEX_COORDS_ARR[2]);
-		vertices[i++] = Vertex(d, normal, TEX_COORDS_ARR[3]);
+		normal	= NEG_Y;
+		tangent = POS_X;
+		vertices[i++] = Vertex(a, normal, TEX_COORDS_ARR[0], tangent);
+		vertices[i++] = Vertex(b, normal, TEX_COORDS_ARR[1], tangent);
+		vertices[i++] = Vertex(c, normal, TEX_COORDS_ARR[2], tangent);
+		vertices[i++] = Vertex(a, normal, TEX_COORDS_ARR[0], tangent);
+		vertices[i++] = Vertex(c, normal, TEX_COORDS_ARR[2], tangent);
+		vertices[i++] = Vertex(d, normal, TEX_COORDS_ARR[3], tangent);
 	}
 
 	static void GenerateFromFile(const GLchar* path, std::vector<Vertex>& vertices, std::vector<GLuint>& indices)

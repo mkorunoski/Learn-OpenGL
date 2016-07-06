@@ -20,7 +20,7 @@ GLuint wndHeight = 900;
 int main(int argc, char ** argv)
 {	
 	Display display(wndWidth, wndHeight);
-	Camera camera(glm::vec3(0.0f, 5.0f, 20.0f));
+	Camera camera(glm::vec3(0.0f, 5.0f, -20.0f));
 
 	EventHandler eventHandler;
 

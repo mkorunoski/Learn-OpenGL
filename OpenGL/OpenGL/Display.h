@@ -35,8 +35,8 @@ public:
 
 		glViewport(0, 0, width, height);
 		glEnable(GL_DEPTH_TEST);
-		glEnable(GL_CULL_FACE);
-		glCullFace(GL_BACK);
+		/*glEnable(GL_CULL_FACE);
+		glCullFace(GL_BACK);*/
 
 		InitOffscreenRenderTarget();
 	}
@@ -95,7 +95,7 @@ public:
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-		offscreenShader = new Shader("./res/shaders/offscreen.vs", "./res/shaders/offscreen.fs");
+		offscreenShader = new Shader("./res/shaders/offscreen.vs", "./res/shaders/offscreen.fs", "offscreen");
 		
 		GLfloat quad[] = 
 		{

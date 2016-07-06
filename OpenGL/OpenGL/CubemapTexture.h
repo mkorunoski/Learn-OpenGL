@@ -48,7 +48,7 @@ public:
 
 	void Use()
 	{		
-		glActiveTexture(GL_TEXTURE4);
+		glActiveTexture(GL_TEXTURE10);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
 	}
 
