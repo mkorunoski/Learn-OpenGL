@@ -14,8 +14,8 @@
 #include "Timer.h"
 #include "Renderer.h"
 
-GLuint wndWidth  = 1440;
-GLuint wndHeight = 900;
+GLuint wndWidth  = 960;
+GLuint wndHeight = 780;
 
 int main(int argc, char ** argv)
 {	
