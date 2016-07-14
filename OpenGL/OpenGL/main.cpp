@@ -14,8 +14,8 @@
 #include "Timer.h"
 #include "Renderer.h"
 
-GLuint wndWidth  = 960;
-GLuint wndHeight = 780;
+GLuint wndWidth  = 1440;
+GLuint wndHeight = 900;
 
 int main(int argc, char ** argv)
 {	
@@ -28,7 +28,6 @@ int main(int argc, char ** argv)
 
 	Renderer renderer(&camera, wndWidth, wndHeight);
 	
-	SDL_SetRelativeMouseMode(SDL_TRUE);	
 	SDL_Event e;		
 	while (true)
 	{
@@ -75,11 +74,11 @@ int main(int argc, char ** argv)
 		
 		renderer.IncrementAngle((GLfloat)timer.DeltaTime());
 
-		//display.RenderSceneToFrameBuffer();
+		// display.RenderSceneToFrameBuffer();
 		renderer.RenderScene();
 		
-		//display.RenderOnscreen();
-		//display.DisplayFrameBufferContent();
+		// display.RenderOnscreen();
+		// display.DisplayFrameBufferContent();
 
 		display.SwapBuffers();
 	}

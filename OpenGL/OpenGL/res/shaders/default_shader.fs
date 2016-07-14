@@ -1,6 +1,8 @@
 #version 420 core
 #extension GL_ARB_explicit_uniform_location : enable
 
+#define NUM_POINT_LIGHTS 3
+
 struct Material
 {
 	vec3 ambient;
@@ -32,7 +34,7 @@ struct PointLight
 	float linear;
 	float quadratic;
 };
-uniform PointLight pointLight[3];
+uniform PointLight pointLight[NUM_POINT_LIGHTS];
 
 struct SpotLight
 {
@@ -99,7 +101,7 @@ void main()
 	diffuse += tmpDiffuse;
 	specular += tmpSpecular;		
 		
-	for(int i = 0; i < 3; ++i)
+	for(int i = 0; i < NUM_POINT_LIGHTS; ++i)
 	{	
 		tmpAmbient = tmpDiffuse = tmpSpecular = vec4(0.0f);
 		CalcPointLight(pointLight[i], tmpAmbient, tmpDiffuse, tmpSpecular);
@@ -114,7 +116,7 @@ void main()
 	// diffuse += tmpDiffuse;
 	// specular += tmpSpecular;
 
-    fragColor = (ambient + diffuse + specular) * texture(maps.diffuse, fs_in.texCoords);
+    fragColor = (ambient + diffuse + specular) * vec4(texture(maps.diffuse, fs_in.texCoords).rgb, 0.3f);
 }
 
 

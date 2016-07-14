@@ -66,7 +66,7 @@ public:
 
 	void InvertY()
 	{
-		this->position.y = -1 * this->position.y;
+		this->position.y = (-1) * this->position.y;
 	}
 
 	void Move(GLfloat dx, GLfloat dz)
@@ -150,7 +150,7 @@ public:
 
 	void InvertY()
 	{
-		this->position.y = -1 * this->position.y;
+		this->position.y = (-1) * this->position.y;
 	}
 
 	~PointLight() { }

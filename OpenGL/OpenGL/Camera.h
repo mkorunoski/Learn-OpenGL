@@ -77,6 +77,8 @@ public:
 			this->Position -= this->Right * velocity;
 		if (direction == RIGHT)
 			this->Position += this->Right * velocity;
+
+		this->Position.y = glm::clamp(this->Position.y, 5.0f, 5.0f);
 	}
 
 	void ProcessMouseMovement(GLfloat xoffset, GLfloat yoffset, GLboolean constrainPitch = true)
@@ -93,8 +95,8 @@ public:
 				this->Pitch = 89.0f;
 			if (this->Pitch < -89.0f)
 				this->Pitch = -89.0f;
-		}
-				
+		}			
+		
 		this->updateCameraVectors();
 	}
 
