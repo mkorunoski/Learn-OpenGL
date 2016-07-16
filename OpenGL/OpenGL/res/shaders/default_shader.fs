@@ -85,6 +85,25 @@ void Phong(in Light light, inout vec4 ambient, inout vec4 diffuse, inout vec4 sp
 	specular += spec * vec4(light.specular, 1.0f);	
 }
 
+void Blinn_Phong(in Light light, inout vec4 ambient, inout vec4 diffuse, inout vec4 specular)
+{
+	vec4 normal = normalize(fs_in.normal);
+	
+	vec4 lightVector, viewVector, halfwayVector;
+	float diff, spec;
+
+	lightVector = normalize(vec4(light.position, 1.0f) - fs_in.position);
+	diff = max(dot(normal, lightVector), 0.0f);
+
+	viewVector    = normalize(vec4(eyePosition, 1.0f) - fs_in.position);
+	halfwayVector = normalize(lightVector + viewVector);
+	spec = pow(max(dot(normal, halfwayVector), 0.0f), material.shininess);
+
+	ambient  += 	   vec4(light.ambient, 1.0f);
+	diffuse  += diff * vec4(light.diffuse, 1.0f);
+	specular += spec * vec4(light.specular, 1.0f);	
+}
+
 void CalcPointLight(in PointLight pointLight, inout vec4 ambient, inout vec4 diffuse, inout vec4 specular);
 void CalcSpotLight(in SpotLight spotLight, inout vec4 ambient, inout vec4 diffuse, inout vec4 specular);
 
@@ -96,7 +115,7 @@ void main()
 	vec4 tmpAmbient, tmpDiffuse, tmpSpecular;
 
 	tmpAmbient = tmpDiffuse = tmpSpecular = vec4(0.0f);
-	Phong(directionalLight.light, tmpAmbient, tmpDiffuse, tmpSpecular);
+	Blinn_Phong(directionalLight.light, tmpAmbient, tmpDiffuse, tmpSpecular);
 	ambient += tmpAmbient;
 	diffuse += tmpDiffuse;
 	specular += tmpSpecular;		
@@ -125,7 +144,7 @@ void main()
 
 void CalcPointLight(in PointLight pointLight, inout vec4 ambient, inout vec4 diffuse, inout vec4 specular)
 {
-	Phong(pointLight.light, ambient, diffuse, specular);
+	Blinn_Phong(pointLight.light, ambient, diffuse, specular);
 	float dist = length(vec4(pointLight.light.position, 1.0f) - fs_in.position);
 	float atenuation = 1.0f / (pointLight.constant + pointLight.linear * dist + pointLight.quadratic * pow(dist, 2));
 	ambient  *= atenuation;
@@ -139,7 +158,7 @@ void CalcSpotLight(in SpotLight spotLight, inout vec4 ambient, inout vec4 diffus
 	float theta = dot(lightVector, normalize(-vec4(spotLight.direction, 0.0f)));		
 	if(theta > spotLight.cutOff)
 	{
-		Phong(spotLight.light, ambient, diffuse, specular);
+		Blinn_Phong(spotLight.light, ambient, diffuse, specular);
 		float epsilon = spotLight.cutOff - spotLight.outerCutOff;
 		float intensity = clamp((spotLight.cutOff - theta) / epsilon, 0.0f, 1.0f);
 		diffuse  *= intensity;

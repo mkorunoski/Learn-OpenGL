@@ -23,6 +23,9 @@ private:
 	GLuint uAmbient, uDiffuse, uSpecular, uPosition;
 
 public:
+	glm::vec3 GetPosition() { return position; }
+
+public:
 	DirectionalLight() { }
 
 	DirectionalLight& operator=(const DirectionalLight& light)

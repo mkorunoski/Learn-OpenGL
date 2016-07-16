@@ -1,25 +1,22 @@
 #version 420 core
 
+#define near 0.1f
+#define far 1000.0f
+
 in vec2 f_texCoords;
 
 uniform sampler2D screenTexture;
 
 out vec4 fragColor;
 
-void InvertColors()
+float LinearizeDepth(float depth) 
 {
-	fragColor = vec4(vec3(1.0f - texture(screenTexture, f_texCoords)), 1.0f); 
-}
-
-void Grayscale()
-{
-	vec4 sampled = texture(screenTexture, f_texCoords);
-	float average = (sampled.x + sampled.y + sampled.z) / 3.0f;
-	fragColor = vec4(average, average, average, 1.0f); 
+    float z = depth * 2.0 - 1.0;
+    return (2.0 * near * far) / (far + near - z * (far - near));	
 }
 
 void main()
 {
-	fragColor = texture(screenTexture, f_texCoords);
-//	InvertColors();
+	float depth = texture(screenTexture, f_texCoords).r;
+	fragColor = vec4(vec3(depth), 1.0f);
 }

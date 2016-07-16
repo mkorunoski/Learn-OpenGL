@@ -20,13 +20,18 @@ GLuint wndHeight = 900;
 int main(int argc, char ** argv)
 {	
 	Display display(wndWidth, wndHeight);
-	Camera camera(glm::vec3(0.0f, 5.0f, -20.0f));
+	Camera camera(glm::vec3(0.0f, 5.0f, 20.0f));
 
 	EventHandler eventHandler;
 
 	Timer timer; timer.Start();
 
 	Renderer renderer(&camera, wndWidth, wndHeight);
+
+	glm::mat4 projectionOrtho = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 1000.0f);
+	glm::mat4 projectionPersp = glm::perspective(70.0f, (GLfloat)wndWidth / (GLfloat)wndHeight, 0.1f, 1000.0f);
+	glm::mat4 view		 = glm::lookAt(renderer.GetDirectionalLightPosition(), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	glm::mat4 lightSpace = projectionOrtho * view;
 	
 	SDL_Event e;		
 	while (true)
@@ -72,13 +77,21 @@ int main(int argc, char ** argv)
 
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		
-		renderer.IncrementAngle((GLfloat)timer.DeltaTime());
+		renderer.SetDeltaTime((GLfloat)timer.DeltaTime());	
 
-		// display.RenderSceneToFrameBuffer();
+		/*renderer.SetProjectionMatrix(projectionOrtho);
+		renderer.SetViewMatrix(view);
+		display.RenderDepthMap();
 		renderer.RenderScene();
-		
-		// display.RenderOnscreen();
-		// display.DisplayFrameBufferContent();
+		display.RenderSceneOnscreen();
+		display.DisplayDepthMapContent();*/
+
+		renderer.SetProjectionMatrix(projectionPersp);
+		renderer.SetViewMatrix(camera.GetViewMatrix());
+		renderer.SetLightSpaceMatrix(lightSpace);
+		display.RenderSceneToFrameBuffer();
+		renderer.RenderScene();
+		display.DisplayFrameBufferContent();
 
 		display.SwapBuffers();
 	}

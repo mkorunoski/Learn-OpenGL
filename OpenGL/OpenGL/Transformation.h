@@ -53,6 +53,12 @@ public:
 		UpdateModelMatrix();
 	}
 
+	void Rotate(const glm::mat4& rotate)
+	{
+		this->rotate = rotate;
+		UpdateModelMatrix();
+	}
+
 	void Translate(const glm::vec3& v)
 	{
 		translate = glm::translate(v);
