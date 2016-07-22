@@ -7,10 +7,11 @@ layout (location = 1) in vec3 normal;
 layout (location = 2) in vec2 texCoords;
 layout (location = 3) in vec3 tangent;
 
-layout(std140) uniform ViewProjection
+layout(std140) uniform ViewProjectionLighSpace
 {
 	mat4 view;
 	mat4 projection;
+	mat4 lightSpace;
 };
 
 // Transformation matrices base: 10
@@ -22,6 +23,7 @@ uniform sampler2D bump;
 out VS_OUT
 {
 	vec4 position;	
+	vec4 positionLightSpace;
 	vec2 texCoords;
 	mat3 TBN;
 } vs_out;
@@ -29,11 +31,13 @@ out VS_OUT
 void main()
 {
 	vs_out.position  = model * vec4(position, 1.0f);
+	vs_out.positionLightSpace = lightSpace * vs_out.position;
 	vs_out.texCoords = texCoords;	
 	vec3 T = normalize((model * vec4(tangent, 0.0f)).xyz);
 	vec3 N = normalize((model * vec4(normal, 0.0f)).xyz);
 	vec3 B = normalize(cross(T, N));
 	vs_out.TBN = mat3(T, B, N);
+
 
     gl_Position = projection * view * model * vec4(position, 1.0f);        
 }

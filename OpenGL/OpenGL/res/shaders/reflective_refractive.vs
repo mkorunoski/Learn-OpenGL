@@ -6,22 +6,28 @@ layout (location = 0) in vec3 position;
 layout (location = 1) in vec3 normal;
 layout (location = 2) in vec2 texCoords;
 
-layout(std140) uniform ViewProjection
+layout(std140) uniform ViewProjectionLighSpace
 {
 	mat4 view;
 	mat4 projection;
+	mat4 lightSpace;
 };
 
 // Transformation matrices base: 10
 layout(location = 10) uniform mat4 model;
 layout(location = 11) uniform mat4 inverseTranspose;
 
-out vec4 f_position;
-out vec4 f_normal;
+out VS_OUT
+{
+	vec4 position;
+	vec4 positionLightSpace;
+	vec4 normal;
+} vs_out;
 
 void main()
 {	
-	f_position	= model * vec4(position, 1.0f);
-	f_normal 	= inverseTranspose * vec4(normal, 0.0f);
+	vs_out.position	= model * vec4(position, 1.0f);
+	vs_out.positionLightSpace = lightSpace * vs_out.position;
+	vs_out.normal 	= inverseTranspose * vec4(normal, 0.0f);
     gl_Position = projection * view * model * vec4(position, 1.0f);        
 }

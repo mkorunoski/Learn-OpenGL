@@ -19,6 +19,12 @@ public:
 		return *this;
 	}
 
+	Texture& operator=(const GLuint& texture)
+	{
+		this->texture = texture;
+		return *this;
+	}
+
 	Texture(const std::string& textureLocation)
 	{
 		int textureWidth, textureHeight;

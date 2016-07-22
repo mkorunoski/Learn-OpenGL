@@ -7,10 +7,11 @@ layout (location = 1) in vec3 normal;
 layout (location = 2) in vec2 texCoords;
 layout (location = 3) in vec3 tangent;
 
-layout(std140) uniform ViewProjection
+layout(std140) uniform ViewProjectionLighSpace
 {
 	mat4 view;
 	mat4 projection;
+	mat4 lightSpace;
 };
 
 // Transformation matrices base: 10
@@ -20,6 +21,7 @@ layout(location = 11) uniform mat4 inverseTranspose;
 out VS_OUT
 {
 	vec4 position;
+	vec4 positionLightSpace;
 	vec4 normal;
 	vec2 texCoords;
 } vs_out;
@@ -27,6 +29,7 @@ out VS_OUT
 void main()
 {
 	vs_out.position  = model * vec4(position, 1.0f);
+	vs_out.positionLightSpace = lightSpace * vs_out.position;
 	vs_out.normal 	 = inverseTranspose * vec4(normal, 0.0f);
 	vs_out.texCoords = texCoords;
 

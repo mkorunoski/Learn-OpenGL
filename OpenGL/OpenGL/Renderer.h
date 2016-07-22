@@ -62,6 +62,8 @@ private:
 	Texture waterBumpTex;
 	Texture wallDiffuseTex;
 	Texture wallNormalTex;	
+
+	Texture shadowMapTex;
 	CubemapTexture skyboxTex;
 
 	GLuint UBO;
@@ -77,8 +79,8 @@ private:
 	void SetupLights()
 	{
 		directionalLight = DirectionalLight(
-			glm::vec3(0.0f), glm::vec3(0.1f), glm::vec3(0.5f),
-			glm::vec3(25.0f, 50.0f, 50.0f));
+			glm::vec3(0.05f), glm::vec3(0.1f), glm::vec3(0.5f),
+			glm::vec3(0.0f, 15.0f, 50.0f));
 		
 		float f = 0.5f;
 		pointLights[0] = PointLight(
@@ -167,13 +169,13 @@ private:
 	{
 		const GLuint BINDING_POINT0 = 0;
 		GLuint UBIndices[NUM_SHADERS];
-		const GLchar* UB_NAME = "ViewProjection";
+		const GLchar* UB_NAME = "ViewProjectionLighSpace";
 		const GLuint PROGRAMS[NUM_SHADERS] = { defaultShader.GetProgram(), defaultShaderNM.GetProgram(), skyboxShader.GetProgram(), reflRefrShader.GetProgram() };  // add the reference to the new shader's program here
 		GLuint i = 0;
 
 		glGenBuffers(1, &UBO);
 		glBindBuffer(GL_UNIFORM_BUFFER, UBO);
-		glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), NULL, GL_DYNAMIC_DRAW);
+		glBufferData(GL_UNIFORM_BUFFER, 3 * sizeof(glm::mat4), NULL, GL_DYNAMIC_DRAW);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 		glBindBufferBase(GL_UNIFORM_BUFFER, BINDING_POINT0, UBO);
@@ -187,23 +189,16 @@ private:
 
 	// For animation	
 	GLfloat dt = 0.0f;
-
-	glm::mat4 projection;
-	glm::mat4 lightSpace;
-
+	
 public:
 	void SetDeltaTime(GLfloat deltaTime) { dt += deltaTime; }
 
 	void SetProjectionMatrix(glm::mat4 projection)
 	{
-		this->projection = projection;
 		glBindBuffer(GL_UNIFORM_BUFFER, UBO);
 		glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(projection));
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	}
-
-	void SetLightSpaceMatrix(glm::mat4 lightSpace) { this->lightSpace = lightSpace; }
-
 
 	void SetViewMatrix(glm::mat4 view)
 	{
@@ -211,6 +206,14 @@ public:
 		glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(view));
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	}
+
+	void SetLightSpaceMatrix(glm::mat4 lightSpace) {
+		glBindBuffer(GL_UNIFORM_BUFFER, UBO);
+		glBufferSubData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(lightSpace));
+		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+	}
+
+	void SetShadowMapTexture(const GLuint& shadowMapTex) { this->shadowMapTex = shadowMapTex; }
 
 	glm::vec3 GetDirectionalLightPosition() { return directionalLight.GetPosition(); }
 	
@@ -228,6 +231,7 @@ public:
 	
 	void RenderScene()
 	{			
+		
 #pragma region Floor reflection
 		// Draw to stencil buffer
 		glEnable(GL_STENCIL_TEST);
@@ -245,6 +249,7 @@ public:
 		defaultShader.Use();
 			glUniformMatrix4fv(UniformLoc::MODEL, 1, false, glm::value_ptr(planeTransformation.GetModel()));
 			glUniformMatrix4fv(UniformLoc::INVERSE_TRANSPOSE, 1, false, glm::value_ptr(planeTransformation.GetInverseTranspose()));
+			glUniform1i(glGetUniformLocation(defaultShader.GetProgram(), "reflection"), false);
 			planeMesh.DrawElements();
 		defaultShader.Unuse();
 
@@ -272,8 +277,10 @@ public:
 			glUniform3fv(UniformLoc::EYE_POSITION, 1, glm::value_ptr(camera->GetEyePos()));
 			glUniformMatrix4fv(UniformLoc::MODEL, 1, false, glm::value_ptr(planeTransformation.GetModel()));
 			glUniformMatrix4fv(UniformLoc::INVERSE_TRANSPOSE, 1, false, glm::value_ptr(planeTransformation.GetInverseTranspose()));
+			glUniform1i(glGetUniformLocation(defaultShader.GetProgram(), "reflection"), false);
 			planeMaterial.Use(defaultShader.GetProgram());
 			checkeredTex.Use(defaultShader.GetProgram(), "maps.diffuse", 0);
+			shadowMapTex.Use(defaultShader.GetProgram(), "maps.shadow", 3);
 			planeMesh.DrawElements();
 			checkeredTex.Unuse();
 		defaultShader.Unuse();
@@ -285,9 +292,11 @@ public:
 		defaultShader.Use();			
 			glUniform3fv(UniformLoc::EYE_POSITION, 1, glm::value_ptr(camera->GetEyePos()));
 			glUniformMatrix4fv(UniformLoc::MODEL, 1, false, glm::value_ptr(loadedMeshTransformation.GetModel()));
-			glUniformMatrix4fv(UniformLoc::INVERSE_TRANSPOSE, 1, false, glm::value_ptr(loadedMeshTransformation.GetInverseTranspose()));						
+			glUniformMatrix4fv(UniformLoc::INVERSE_TRANSPOSE, 1, false, glm::value_ptr(loadedMeshTransformation.GetInverseTranspose()));
+			glUniform1i(glGetUniformLocation(defaultShader.GetProgram(), "reflection"), false);
 			loadedMeshMaterial.Use(defaultShader.GetProgram());
 			marbleTex.Use(defaultShader.GetProgram(), "maps.diffuse", 0);
+			shadowMapTex.Use(defaultShader.GetProgram(), "maps.shadow", 3);
 			loadedMesh.DrawElements();
 			marbleTex.Unuse();
 		defaultShader.Unuse();	
@@ -306,7 +315,10 @@ public:
 			reflRefrShader.Use();
 				glUniformMatrix4fv(UniformLoc::MODEL, 1, false, glm::value_ptr(loadedMeshTransformation.GetModel()));
 				glUniformMatrix4fv(UniformLoc::INVERSE_TRANSPOSE, 1, false, glm::value_ptr(loadedMeshTransformation.GetInverseTranspose()));
+				glUniform1i(glGetUniformLocation(reflRefrShader.GetProgram(), "reflection"), false);
 				skyboxTex.Use();
+				marbleTex.Use(reflRefrShader.GetProgram(), "maps.diffuse", 0);
+				shadowMapTex.Use(reflRefrShader.GetProgram(), "maps.shadow", 3);
 				loadedMeshMaterial.Use(reflRefrShader.GetProgram());
 				loadedMesh.DrawElements();
 				skyboxTex.Unuse();
@@ -350,10 +362,12 @@ public:
 		defaultShaderNM.Use();
 			glUniform3fv(UniformLoc::EYE_POSITION, 1, glm::value_ptr(camera->GetEyePos()));
 			glUniformMatrix4fv(UniformLoc::MODEL, 1, false, glm::value_ptr(planeTransformation.GetModel()));
-			glUniformMatrix4fv(UniformLoc::INVERSE_TRANSPOSE, 1, false, glm::value_ptr(planeTransformation.GetInverseTranspose()));			
+			glUniformMatrix4fv(UniformLoc::INVERSE_TRANSPOSE, 1, false, glm::value_ptr(planeTransformation.GetInverseTranspose()));	
+			glUniform1i(glGetUniformLocation(defaultShaderNM.GetProgram(), "reflection"), false);
 			wallMaterial.Use(defaultShaderNM.GetProgram());
 			wallDiffuseTex.Use(defaultShaderNM.GetProgram(), "maps.diffuse", 0);
 			wallNormalTex.Use(defaultShaderNM.GetProgram(), "maps.normal", 1);
+			shadowMapTex.Use(defaultShaderNM.GetProgram(), "maps.shadow", 3);
 			planeMesh.DrawElements();
 			wallNormalTex.Unuse();
 			wallDiffuseTex.Unuse();
@@ -374,6 +388,7 @@ public:
 			glUniform3fv(UniformLoc::EYE_POSITION, 1, glm::value_ptr(camera->GetEyePos()));
 			glUniformMatrix4fv(UniformLoc::MODEL, 1, false, glm::value_ptr(loadedMeshTransformation.GetModel()));
 			glUniformMatrix4fv(UniformLoc::INVERSE_TRANSPOSE, 1, false, glm::value_ptr(loadedMeshTransformation.GetInverseTranspose()));
+			glUniform1i(glGetUniformLocation(defaultShader.GetProgram(), "reflection"), true);
 			loadedMeshMaterial.Use(defaultShader.GetProgram());
 			marbleTex.Use(defaultShader.GetProgram(), "maps.diffuse", 0);
 			loadedMesh.DrawElements();
@@ -396,7 +411,8 @@ public:
 			reflRefrShader.Use();
 				glUniformMatrix4fv(UniformLoc::MODEL, 1, false, glm::value_ptr(loadedMeshTransformation.GetModel()));
 				glUniformMatrix4fv(UniformLoc::INVERSE_TRANSPOSE, 1, false, glm::value_ptr(loadedMeshTransformation.GetInverseTranspose()));
-				skyboxTex.Use();
+				glUniform1i(glGetUniformLocation(reflRefrShader.GetProgram(), "reflection"), true);
+				skyboxTex.Use();				
 				loadedMeshMaterial.Use(reflRefrShader.GetProgram());
 				loadedMesh.DrawElements();
 				skyboxTex.Unuse();

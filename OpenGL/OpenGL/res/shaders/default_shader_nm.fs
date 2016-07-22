@@ -29,18 +29,22 @@ struct Maps
 	sampler2D diffuse;
 	sampler2D normal;
 	sampler2D specular;	
+	sampler2D shadow;
 };
 uniform Maps maps;
 
 in VS_OUT
 {
-	vec4 position;		
+	vec4 position;	
+	vec4 positionLightSpace;
 	vec2 texCoords;
 	mat3 TBN;
 }fs_in;
 
 // Fragment shader uniforms base: 20
 layout(location = 20) uniform vec3 eyePosition;
+
+uniform bool reflection;
 
 out vec4 fragColor;
 
@@ -91,6 +95,8 @@ void Blinn_Phong(in Light light, inout vec4 ambient, inout vec4 diffuse, inout v
 	specular += spec * vec4(light.specular, 1.0f);	
 }
 
+float ShadowCalculation(vec4 fragPosLightSpace);
+
 void main()
 {	
 	vec4 ambient, diffuse, specular;	
@@ -98,5 +104,33 @@ void main()
 	Blinn_Phong(directionalLight.light, ambient, diffuse, specular);
 
 	// vec4 waterColor = vec4(0.19f, 0.34f, 0.75f, 1.0f);
-    fragColor = (ambient + diffuse + specular) * texture(maps.diffuse, fs_in.texCoords);   
+    if(reflection) 
+		fragColor = (ambient + diffuse + specular);
+	else
+	{
+		float shadow = ShadowCalculation(fs_in.positionLightSpace);
+		fragColor = (ambient + (1.0f - shadow) * (diffuse + specular));
+	}
+    fragColor *= texture(maps.diffuse, fs_in.texCoords);   
+}
+
+
+
+
+
+float ShadowCalculation(vec4 fragPosLightSpace)
+{
+	// perform perspective divide
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    // Transform to [0,1] range
+    projCoords = projCoords * 0.5 + 0.5;
+    // Get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
+    float closestDepth = texture(maps.shadow, projCoords.xy).r; 
+    // Get depth of current fragment from light's perspective
+    float currentDepth = projCoords.z;
+    // Check whether current frag pos is in shadow
+    float bias = 0.005;
+    float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0;
+
+    return shadow;	
 }

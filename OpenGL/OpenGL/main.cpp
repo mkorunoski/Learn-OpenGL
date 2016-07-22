@@ -14,8 +14,8 @@
 #include "Timer.h"
 #include "Renderer.h"
 
-GLuint wndWidth  = 1440;
-GLuint wndHeight = 900;
+GLuint wndWidth  = 1024;
+GLuint wndHeight = 768;
 
 int main(int argc, char ** argv)
 {	
@@ -28,7 +28,8 @@ int main(int argc, char ** argv)
 
 	Renderer renderer(&camera, wndWidth, wndHeight);
 
-	glm::mat4 projectionOrtho = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 1000.0f);
+	float w = 25.0f;
+	glm::mat4 projectionOrtho = glm::ortho(-w, w, -w, w, 0.1f, 1000.0f);
 	glm::mat4 projectionPersp = glm::perspective(70.0f, (GLfloat)wndWidth / (GLfloat)wndHeight, 0.1f, 1000.0f);
 	glm::mat4 view		 = glm::lookAt(renderer.GetDirectionalLightPosition(), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	glm::mat4 lightSpace = projectionOrtho * view;
@@ -79,16 +80,18 @@ int main(int argc, char ** argv)
 		
 		renderer.SetDeltaTime((GLfloat)timer.DeltaTime());	
 
-		/*renderer.SetProjectionMatrix(projectionOrtho);
+		
+		renderer.SetProjectionMatrix(projectionOrtho);
 		renderer.SetViewMatrix(view);
-		display.RenderDepthMap();
+		display.RenderSceneToDepthMap();
 		renderer.RenderScene();
 		display.RenderSceneOnscreen();
-		display.DisplayDepthMapContent();*/
-
+		//display.DisplayDepthMapContent();		
+		
 		renderer.SetProjectionMatrix(projectionPersp);
 		renderer.SetViewMatrix(camera.GetViewMatrix());
 		renderer.SetLightSpaceMatrix(lightSpace);
+		renderer.SetShadowMapTexture(display.GetShadowMapTexure());
 		display.RenderSceneToFrameBuffer();
 		renderer.RenderScene();
 		display.DisplayFrameBufferContent();
