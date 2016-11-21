@@ -18,5 +18,5 @@ Project for learning OpenGL.
 - Shadow Mapping
 - Normal Mapping etc.
 
-## Screenshot
+## Screenshots
 ![Image Title](https://github.com/mkorunoski/OpenGL/blob/master/Images/Screenshot.png)
