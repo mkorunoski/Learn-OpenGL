@@ -1,4 +1,4 @@
-# OpenGL
+# Learn OpenGL
 Project for learning OpenGL.
 
 ## Implemented concepts
