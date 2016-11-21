@@ -16,6 +16,7 @@ Project for learning OpenGL.
 - Advanced GLSL
 - Gamma Correction
 - Shadow Mapping
-- Normal mapping etc.
+- Normal Mapping etc.
 
 ## Screenshot
+![Image Title](https://github.com/mkorunoski/OpenGL/blob/master/Images/Screenshot.png)
